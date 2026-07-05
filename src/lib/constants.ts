@@ -23,10 +23,14 @@ export const CLIENT_TYPES = [
 export const USER_ROLES = [
   { value: "admin", label: "Administrador" },
   { value: "comercial", label: "Comercial" },
-  { value: "operacional", label: "Operacional" },
-  { value: "financeiro", label: "Financeiro" },
-  { value: "gestor", label: "Gestor" },
-  { value: "consulta", label: "Consulta" },
+] as const;
+
+/** Seções do sistema que só o Administrador enxerga/acessa */
+export const ADMIN_ONLY_SECTIONS = [
+  "/diarias",
+  "/financeiro",
+  "/relatorios",
+  "/configuracoes",
 ] as const;
 
 export const BR_STATES = [

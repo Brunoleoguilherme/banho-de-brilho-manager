@@ -20,6 +20,7 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ADMIN_ONLY_SECTIONS } from "@/lib/constants";
 
 const mainNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -36,9 +37,18 @@ const mainNav = [
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ role = "admin" }: { role?: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  // Comercial vê só de Dashboard até Equipe; o resto é do Administrador
+  const nav =
+    role === "admin"
+      ? mainNav
+      : mainNav.filter(
+          (item) =>
+            !ADMIN_ONLY_SECTIONS.some((s) => item.href.startsWith(s))
+        );
 
   // Fecha o menu ao navegar (mobile)
   useEffect(() => {
@@ -99,7 +109,7 @@ export function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="space-y-1">
-          {mainNav.map((item) => {
+          {nav.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(item.href + "/");
             return (

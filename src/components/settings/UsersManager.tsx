@@ -22,16 +22,12 @@ export interface UserRow {
 const PAPEIS = [
   { value: "admin", label: "Administrador" },
   { value: "comercial", label: "Comercial" },
-  { value: "operacional", label: "Operacional" },
-  { value: "financeiro", label: "Financeiro" },
-  { value: "gestor", label: "Gestor" },
-  { value: "consulta", label: "Consulta" },
 ];
 
 export function UsersManager({ users }: { users: UserRow[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [form, setForm] = useState({ full_name: "", email: "", role: "consulta" });
+  const [form, setForm] = useState({ full_name: "", email: "", role: "comercial" });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   function handleInvite(e: React.FormEvent) {
@@ -44,7 +40,7 @@ export function UsersManager({ users }: { users: UserRow[] }) {
           ok: true,
           text: `Convite enviado para ${form.email}. A pessoa recebe um e-mail, confirma e cria a própria senha.`,
         });
-        setForm({ full_name: "", email: "", role: "consulta" });
+        setForm({ full_name: "", email: "", role: "comercial" });
         router.refresh();
       } else {
         setMsg({ ok: false, text: result.error ?? "Erro ao convidar." });

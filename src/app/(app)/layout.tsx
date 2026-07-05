@@ -25,10 +25,10 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen bg-surface">
-      <Sidebar />
+      <Sidebar role={profile?.role || "comercial"} />
       <Topbar
         name={profile?.full_name || user.email || ""}
-        role={profile?.role || "consulta"}
+        role={profile?.role || "comercial"}
       />
       <main className="pt-16 lg:ml-64 print:ml-0 print:pt-0">
         <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8 print:max-w-none print:p-0">

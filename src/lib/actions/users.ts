@@ -5,7 +5,7 @@ import { createClient as createSupabaseJs } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity, type ActionResult } from "./helpers";
 
-const PAPEIS = ["admin", "comercial", "operacional", "financeiro", "gestor", "consulta"];
+const PAPEIS = ["admin", "comercial"];
 
 function adminClient() {
   return createSupabaseJs(

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { DeleteOsButton } from "@/components/operations/DeleteOsButton";
 import { formatDate } from "@/lib/utils";
 
 export default async function OperationsPage() {
@@ -65,13 +66,22 @@ export default async function OperationsPage() {
                       <StatusBadge status={os.status} />
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/operacao/${os.id}`}
-                        className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-petrol hover:bg-brand-petrol/5"
-                      >
-                        Abrir
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Link>
+                      <div className="flex items-center justify-end gap-1">
+                        <Link
+                          href={`/operacao/${os.id}`}
+                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-petrol hover:bg-brand-petrol/5"
+                        >
+                          Abrir
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Link>
+                        <DeleteOsButton
+                          osId={os.id}
+                          osCode={os.code}
+                          clientName={
+                            (os.clients as { name: string } | null)?.name ?? "—"
+                          }
+                        />
+                      </div>
                     </td>
                   </tr>
                 );

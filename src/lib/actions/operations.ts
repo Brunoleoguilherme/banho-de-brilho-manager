@@ -1,8 +1,78 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { createClient as createSupabaseJs } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity, type ActionResult } from "./helpers";
+
+async function verifyPassword(password: string): Promise<string | null> {
+  if (!password) return null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return null;
+  const verifier = createSupabaseJs(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
+  );
+  const { error } = await verifier.auth.signInWithPassword({
+    email: user.email,
+    password,
+  });
+  return error ? null : user.email;
+}
+
+/**
+ * Exclui uma OS inteira (turnos, escala e checklist) — exige senha de login.
+ * Bloqueia se houver diária já paga, para não apagar histórico financeiro.
+ */
+export async function deleteOperationOrderAction(
+  id: string,
+  password: string
+): Promise<ActionResult> {
+  const email = await verifyPassword(password);
+  if (!email)
+    return { ok: false, error: "Senha incorreta. Exclusão não autorizada." };
+
+  const supabase = await createClient();
+  const { data: os } = await supabase
+    .from("operation_orders")
+    .select("id, code")
+    .eq("id", id)
+    .single();
+  if (!os) return { ok: false, error: "OS não encontrada." };
+
+  const { count: pagas } = await supabase
+    .from("employee_allocations")
+    .select("*", { count: "exact", head: true })
+    .eq("operation_order_id", id)
+    .eq("status", "pago");
+  if ((pagas ?? 0) > 0)
+    return {
+      ok: false,
+      error: `${os.code} tem ${pagas} diária(s) já paga(s) e não pode ser excluída — isso apagaria o histórico financeiro.`,
+    };
+
+  // Apaga os filhos antes da OS (escala, turnos e checklist)
+  await supabase.from("employee_allocations").delete().eq("operation_order_id", id);
+  await supabase.from("operation_shifts").delete().eq("operation_order_id", id);
+  await supabase.from("operation_checklist_items").delete().eq("operation_order_id", id);
+
+  const { error } = await supabase.from("operation_orders").delete().eq("id", id);
+  if (error) return { ok: false, error: "Erro ao excluir. " + error.message };
+
+  await logActivity({
+    entity_type: "operation_order",
+    entity_id: id,
+    action: "deleted",
+    description: `OS ${os.code} EXCLUÍDA por ${email} (senha confirmada)`,
+  });
+  revalidatePath("/operacao");
+  revalidatePath("/diarias/lancamentos");
+  return { ok: true };
+}
 
 const OS_STATUSES = [
   "criada",

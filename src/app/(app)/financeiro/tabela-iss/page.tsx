@@ -231,6 +231,7 @@ export default async function TabelaIssPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>

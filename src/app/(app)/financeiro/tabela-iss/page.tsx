@@ -145,8 +145,8 @@ export default async function TabelaIssPage() {
               calculados das notas do sistema
             </p>
           </div>
-          <div className="max-h-[36rem] overflow-y-auto">
-            <table className="w-full text-left text-sm">
+          <div className="max-h-[36rem] overflow-auto">
+            <table className="w-full min-w-[480px] text-left text-sm">
               <thead className="sticky top-0 z-10 border-b border-gray-100 bg-gray-50 text-xs uppercase tracking-wide text-ink-muted">
                 <tr>
                   <th className="px-4 py-2.5">Mês</th>
@@ -202,6 +202,7 @@ export default async function TabelaIssPage() {
               Alíquota de ISS pela receita bruta acumulada 12 meses
             </p>
           </div>
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-100 bg-gray-50 text-xs uppercase tracking-wide text-ink-muted">
               <tr>

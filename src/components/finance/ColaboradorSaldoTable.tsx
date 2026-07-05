@@ -124,8 +124,8 @@ export function ColaboradorSaldoTable({ rows }: { rows: ColaboradorSaldoRow[] })
         </div>
       )}
 
-      <div className="max-h-80 overflow-y-auto">
-        <table className="w-full text-left text-sm">
+      <div className="max-h-80 overflow-auto">
+        <table className="w-full min-w-[860px] text-left text-sm">
           <thead className="sticky top-0 z-10 border-b border-gray-100 bg-gray-50 text-xs uppercase tracking-wide text-ink-muted">
             <tr>
               <th className="px-4 py-2.5">Funcionário</th>

@@ -64,8 +64,8 @@ export function EmployeesTable({ rows }: { rows: EmployeeRow[] }) {
           Nenhum resultado para &quot;{query}&quot;.
         </p>
       ) : (
-        <div className="max-h-96 overflow-y-auto">
-          <table className="w-full text-left text-sm">
+        <div className="max-h-96 overflow-auto">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="sticky top-0 z-10 border-b border-gray-100 bg-gray-50 text-xs uppercase tracking-wide text-ink-muted">
               <tr>
                 <th className="px-4 py-3">Nome</th>

@@ -25,21 +25,23 @@ export function Topbar({ name, role }: TopbarProps) {
       <div />
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2.5">
-          <UserCircle2 className="h-8 w-8 text-brand-petrol" />
-          <div className="leading-tight">
-            <p className="text-sm font-semibold text-ink">{name || "Usuário"}</p>
-            <p className="text-xs text-ink-muted">
+          <UserCircle2 className="h-8 w-8 shrink-0 text-brand-petrol" />
+          <div className="min-w-0 leading-tight">
+            <p className="max-w-[130px] truncate text-sm font-semibold text-ink sm:max-w-none">
+              {name || "Usuário"}
+            </p>
+            <p className="truncate text-xs text-ink-muted">
               {labelFor(USER_ROLES, role)}
             </p>
           </div>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-ink-muted transition hover:border-danger hover:text-danger"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-ink-muted transition hover:border-danger hover:text-danger"
           title="Sair do sistema"
         >
           <LogOut className="h-4 w-4" />
-          Sair
+          <span className="hidden sm:inline">Sair</span>
         </button>
       </div>
     </header>

@@ -290,7 +290,7 @@ export function DiariasTable({
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-card">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[980px] text-left text-sm">
           <thead className="border-b border-gray-100 bg-gray-50 text-xs uppercase tracking-wide text-ink-muted">
             <tr>
               <th className="px-3 py-3">

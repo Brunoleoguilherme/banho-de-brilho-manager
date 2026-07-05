@@ -230,9 +230,9 @@ export default async function DashboardPage() {
                       </span>
                     </div>
                     <p className="mt-0.5 truncate text-xs text-ink-muted">
-                      {(p.clients as { name: string } | null)?.name}
-                      {(p.events as { name: string } | null)?.name &&
-                        ` · ${(p.events as { name: string } | null)?.name}`}
+                      {(p.clients as unknown as { name: string } | null)?.name}
+                      {(p.events as unknown as { name: string } | null)?.name &&
+                        ` · ${(p.events as unknown as { name: string } | null)?.name}`}
                     </p>
                     <div className="mt-1">
                       <StatusBadge status={p.status} />

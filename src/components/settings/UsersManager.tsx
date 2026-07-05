@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { UserPlus, Loader2, MailCheck, Mail, Send } from "lucide-react";
+import { UserPlus, Loader2, MailCheck, Mail } from "lucide-react";
 import {
-  inviteUserAction,
+  createUserAction,
   resendInviteAction,
   updateUserAction,
 } from "@/lib/actions/users";
@@ -27,23 +27,28 @@ const PAPEIS = [
 export function UsersManager({ users }: { users: UserRow[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [form, setForm] = useState({ full_name: "", email: "", role: "comercial" });
+  const [form, setForm] = useState({
+    full_name: "",
+    email: "",
+    role: "comercial",
+    password: "",
+  });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  function handleInvite(e: React.FormEvent) {
+  function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
     startTransition(async () => {
-      const result = await inviteUserAction(form);
+      const result = await createUserAction(form);
       if (result.ok) {
         setMsg({
           ok: true,
-          text: `Convite enviado para ${form.email}. A pessoa recebe um e-mail, confirma e cria a própria senha.`,
+          text: `Usuário ${form.email} criado. Já pode entrar com a senha definida — sem confirmação por e-mail.`,
         });
-        setForm({ full_name: "", email: "", role: "comercial" });
+        setForm({ full_name: "", email: "", role: "comercial", password: "" });
         router.refresh();
       } else {
-        setMsg({ ok: false, text: result.error ?? "Erro ao convidar." });
+        setMsg({ ok: false, text: result.error ?? "Erro ao criar usuário." });
       }
     });
   }
@@ -74,11 +79,12 @@ export function UsersManager({ users }: { users: UserRow[] }) {
       <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-card">
         <div className="mb-1 flex items-center gap-2">
           <UserPlus className="h-5 w-5 text-brand-teal" />
-          <h2 className="text-base font-semibold text-ink">Convidar novo usuário</h2>
+          <h2 className="text-base font-semibold text-ink">Criar novo usuário</h2>
         </div>
         <p className="mb-4 text-sm text-ink-muted">
-          A pessoa recebe um e-mail de convite, confirma e define a própria
-          senha — sem precisar mexer no Supabase.
+          Você define a senha aqui e a pessoa já pode entrar — sem
+          confirmação por e-mail. Se o e-mail já existir, a senha é
+          redefinida.
         </p>
 
         {msg && (
@@ -94,7 +100,7 @@ export function UsersManager({ users }: { users: UserRow[] }) {
           </div>
         )}
 
-        <form onSubmit={handleInvite} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <form onSubmit={handleCreate} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <input
             required
             className="input-base"
@@ -109,6 +115,15 @@ export function UsersManager({ users }: { users: UserRow[] }) {
             placeholder="E-mail *"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+          <input
+            required
+            type="text"
+            minLength={6}
+            className="input-base"
+            placeholder="Senha (mín. 6) *"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
           <select
             className="input-base"
@@ -127,9 +142,9 @@ export function UsersManager({ users }: { users: UserRow[] }) {
             {isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Send className="h-4 w-4" />
+              <UserPlus className="h-4 w-4" />
             )}
-            Enviar convite
+            Criar usuário
           </button>
         </form>
       </div>

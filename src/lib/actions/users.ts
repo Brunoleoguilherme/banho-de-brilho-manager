@@ -32,6 +32,92 @@ async function requireAdmin(): Promise<string | null> {
 }
 
 /**
+ * Cria um usuário direto, com senha definida pelo admin — sem e-mail de
+ * confirmação. Se o e-mail já existir (ex.: convite antigo pendente),
+ * apenas redefine a senha, confirma o e-mail e atualiza o papel.
+ */
+export async function createUserAction(input: {
+  full_name: string;
+  email: string;
+  role: string;
+  password: string;
+}): Promise<ActionResult> {
+  const adminEmail = await requireAdmin();
+  if (!adminEmail)
+    return { ok: false, error: "Apenas administradores podem criar usuários." };
+
+  const email = input.email.trim().toLowerCase();
+  const full_name = input.full_name.trim();
+  const password = input.password;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return { ok: false, error: "Informe um e-mail válido." };
+  if (full_name.length < 3)
+    return { ok: false, error: "Informe o nome completo." };
+  if (!PAPEIS.includes(input.role))
+    return { ok: false, error: "Papel inválido." };
+  if (password.length < 6)
+    return { ok: false, error: "A senha precisa ter pelo menos 6 caracteres." };
+
+  const admin = adminClient();
+
+  // Tenta criar; se já existir, atualiza senha + confirma e-mail
+  let userId: string | null = null;
+  const { data: created, error: createError } =
+    await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name },
+    });
+
+  if (createError) {
+    if (!/already|registered|exists/i.test(createError.message))
+      return { ok: false, error: "Erro ao criar: " + createError.message };
+    // Já existe (ex.: convite pendente) — localiza e redefine
+    const { data: list } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    const existing = list?.users.find(
+      (u) => u.email?.toLowerCase() === email
+    );
+    if (!existing)
+      return { ok: false, error: "E-mail já cadastrado, mas não foi possível localizá-lo." };
+    const { error: updError } = await admin.auth.admin.updateUserById(
+      existing.id,
+      { password, email_confirm: true, user_metadata: { full_name } }
+    );
+    if (updError)
+      return { ok: false, error: "Erro ao redefinir a senha: " + updError.message };
+    userId = existing.id;
+  } else {
+    userId = created.user.id;
+  }
+
+  const { error: profileError } = await admin.from("profiles").upsert({
+    id: userId,
+    full_name,
+    role: input.role,
+    active: true,
+  });
+  if (profileError)
+    return {
+      ok: false,
+      error: "Usuário criado, mas houve erro ao salvar o perfil: " + profileError.message,
+    };
+
+  await logActivity({
+    entity_type: "user",
+    entity_id: userId,
+    action: "created",
+    description: `Usuário ${full_name} (${email}, papel ${input.role}) criado por ${adminEmail} com senha definida`,
+  });
+
+  revalidatePath("/configuracoes/usuarios");
+  return { ok: true };
+}
+
+/**
  * Convida um novo usuário: o Supabase envia um e-mail de convite;
  * a pessoa clica, confirma e define a própria senha.
  */

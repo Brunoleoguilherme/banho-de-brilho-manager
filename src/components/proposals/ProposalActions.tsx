@@ -1,0 +1,250 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  Pencil,
+  FileDown,
+  Send,
+  ThumbsUp,
+  ThumbsDown,
+  MessagesSquare,
+  CopyPlus,
+  Ban,
+  Loader2,
+} from "lucide-react";
+import {
+  changeProposalStatusAction,
+  createRevisionAction,
+} from "@/lib/actions/proposals";
+import { sendProposalEmailAction } from "@/lib/actions/send-proposal";
+import { approveProposalAction } from "@/lib/actions/approve-proposal";
+
+interface ProposalActionsProps {
+  proposalId: string;
+  code: string;
+  status: string;
+  contactEmail: string | null;
+}
+
+export function ProposalActions({
+  proposalId,
+  code,
+  status,
+  contactEmail,
+}: ProposalActionsProps) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showSend, setShowSend] = useState(false);
+  const [email, setEmail] = useState(contactEmail ?? "");
+
+  const editable = ["rascunho", "em_revisao_interna", "enviada", "em_negociacao"].includes(status);
+  const isFinal = ["aprovada", "recusada", "cancelada", "convertida_contrato", "convertida_os"].includes(status);
+
+  async function changeStatus(
+    newStatus: Parameters<typeof changeProposalStatusAction>[1],
+    confirmText?: string
+  ) {
+    if (confirmText && !confirm(confirmText)) return;
+    setBusy(newStatus);
+    setError(null);
+    const result = await changeProposalStatusAction(proposalId, newStatus);
+    if (!result.ok) setError(result.error);
+    setBusy(null);
+    router.refresh();
+  }
+
+  async function handleApprove() {
+    if (
+      !confirm(
+        `Confirmar o aceite da proposta ${code}?\n\nO sistema vai gerar automaticamente:\n• Contrato simplificado\n• Ordem de serviço com turnos e checklist\n• Conta a receber no Financeiro (${code})`
+      )
+    )
+      return;
+    setBusy("aprovada");
+    setError(null);
+    const result = await approveProposalAction(proposalId);
+    if (!result.ok) {
+      setError(result.error);
+      setBusy(null);
+      return;
+    }
+    if (result.osId) {
+      router.push(`/operacao/${result.osId}`);
+    }
+    router.refresh();
+  }
+
+  async function handleRevision() {
+    if (!confirm(`Criar uma revisão de ${code}? A nova versão começa como rascunho.`)) return;
+    setBusy("revision");
+    const result = await createRevisionAction(proposalId);
+    if (!result.ok) {
+      setError(result.error);
+      setBusy(null);
+      return;
+    }
+    router.push(`/propostas/${result.id}/editar`);
+    router.refresh();
+  }
+
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy("send");
+    setError(null);
+    const result = await sendProposalEmailAction(proposalId, email);
+    if (!result.ok) {
+      setError(result.error);
+      setBusy(null);
+      return;
+    }
+    setShowSend(false);
+    setBusy(null);
+    router.refresh();
+  }
+
+  const btn =
+    "flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition disabled:opacity-50";
+
+  return (
+    <div className="space-y-3">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-danger">
+          {error}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {editable && (
+          <Link
+            href={`/propostas/${proposalId}/editar`}
+            className={`${btn} border border-gray-300 bg-white text-ink hover:bg-gray-50`}
+          >
+            <Pencil className="h-4 w-4" />
+            Editar
+          </Link>
+        )}
+
+        <a
+          href={`/propostas/${proposalId}/pdf`}
+          target="_blank"
+          rel="noreferrer"
+          className={`${btn} border border-gray-300 bg-white text-ink hover:bg-gray-50`}
+        >
+          <FileDown className="h-4 w-4" />
+          Baixar PDF
+        </a>
+
+        {!isFinal && (
+          <button
+            onClick={() => setShowSend((v) => !v)}
+            className={`${btn} bg-brand-petrol text-white hover:bg-brand-dark`}
+          >
+            <Send className="h-4 w-4" />
+            Enviar por e-mail
+          </button>
+        )}
+
+        {editable && (
+          <>
+            <button
+              onClick={handleApprove}
+              disabled={busy !== null}
+              className={`${btn} bg-success text-white hover:opacity-90`}
+              title="Gera contrato, ordem de serviço, checklist e a conta a receber no Financeiro"
+            >
+              {busy === "aprovada" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ThumbsUp className="h-4 w-4" />
+              )}
+              Proposta aceita
+            </button>
+            <button
+              onClick={() =>
+                changeStatus("recusada", `Marcar ${code} como recusada?`)
+              }
+              disabled={busy !== null}
+              className={`${btn} border border-red-200 bg-white text-danger hover:bg-red-50`}
+            >
+              <ThumbsDown className="h-4 w-4" />
+              Recusada
+            </button>
+          </>
+        )}
+
+        {status === "enviada" && (
+          <button
+            onClick={() => changeStatus("em_negociacao")}
+            disabled={busy !== null}
+            className={`${btn} border border-amber-200 bg-white text-warning hover:bg-amber-50`}
+          >
+            <MessagesSquare className="h-4 w-4" />
+            Em negociação
+          </button>
+        )}
+
+        {isFinal && status !== "cancelada" && (
+          <button
+            onClick={handleRevision}
+            disabled={busy !== null}
+            className={`${btn} border border-gray-300 bg-white text-ink hover:bg-gray-50`}
+          >
+            {busy === "revision" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CopyPlus className="h-4 w-4" />
+            )}
+            Criar revisão
+          </button>
+        )}
+
+        {!isFinal && status !== "rascunho" && (
+          <button
+            onClick={() =>
+              changeStatus("cancelada", `Cancelar a proposta ${code}?`)
+            }
+            disabled={busy !== null}
+            className={`${btn} text-ink-muted hover:bg-gray-100`}
+          >
+            <Ban className="h-4 w-4" />
+            Cancelar proposta
+          </button>
+        )}
+      </div>
+
+      {showSend && (
+        <form
+          onSubmit={handleSend}
+          className="flex flex-wrap items-end gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-card"
+        >
+          <div className="min-w-64 flex-1">
+            <label className="label-base">Enviar proposta {code} para:</label>
+            <input
+              type="email"
+              required
+              className="input-base"
+              placeholder="email@cliente.com.br"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={busy === "send"}
+            className={`${btn} bg-brand-petrol text-white hover:bg-brand-dark`}
+          >
+            {busy === "send" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            {busy === "send" ? "Enviando..." : "Confirmar envio"}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}

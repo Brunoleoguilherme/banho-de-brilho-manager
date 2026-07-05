@@ -1,0 +1,42 @@
+import { createClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { ProposalForm } from "@/components/proposals/ProposalForm";
+
+export default async function NewProposalPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ evento?: string }>;
+}) {
+  const { evento } = await searchParams;
+  const supabase = await createClient();
+
+  const [{ data: events }, { data: eventSchedules }] = await Promise.all([
+    supabase
+      .from("events")
+      .select("id, name, start_date, estimated_public, clients(name)")
+      .order("start_date", { ascending: false, nullsFirst: false }),
+    supabase
+      .from("event_schedules")
+      .select("event_id, service_type, service_date, start_time, end_time")
+      .order("service_date"),
+  ]);
+
+  const eventOptions = (events ?? []).map((e) => ({
+    id: e.id,
+    name: e.name,
+    start_date: e.start_date,
+    estimated_public: e.estimated_public,
+    client_name: (e.clients as unknown as { name: string } | null)?.name ?? "",
+    schedules: (eventSchedules ?? []).filter((s) => s.event_id === e.id),
+  }));
+
+  return (
+    <div className="mx-auto max-w-4xl">
+      <PageHeader
+        title="Nova proposta"
+        description="O número BBP é gerado automaticamente ao salvar"
+      />
+      <ProposalForm events={eventOptions} defaultEventId={evento} />
+    </div>
+  );
+}

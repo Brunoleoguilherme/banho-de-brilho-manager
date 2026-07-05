@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth; /* rolagem suave nas âncoras do site institucional */
+}
+
+:root {
+  --brand-petrol: #3e7cb1;
+  --brand-dark: #0f2742;
+  --brand-teal: #a8cf00;
+  --brand-gold: #69a9cf;
+  --surface: #f5f7fa;
+}
+
+body {
+  @apply bg-surface text-ink antialiased;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+  body {
+    background: white !important;
+  }
+  /* Grade do calendário bem visível na impressão */
+  .cal-grid {
+    border: 2pt solid #000 !important;
+  }
+  .cal-cell {
+    border-right: 1.2pt solid #000 !important;
+    border-bottom: 1.2pt solid #000 !important;
+  }
+  .cal-head {
+    border-right: 1.2pt solid #000 !important;
+    border-bottom: 2pt solid #000 !important;
+  }
+  .cal-chip {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1pt solid #000 !important;
+    font-weight: 700 !important;
+  }
+}
+
+@layer components {
+  .input-base {
+    @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-ink placeholder:text-gray-400 focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/20 disabled:cursor-not-allowed disabled:bg-gray-50;
+  }
+  .label-base {
+    @apply mb-1.5 block text-sm font-medium text-ink;
+  }
+}

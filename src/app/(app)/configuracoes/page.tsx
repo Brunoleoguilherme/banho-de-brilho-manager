@@ -32,29 +32,28 @@ export default function SettingsPage() {
           </div>
         </Link>
 
-        <a
-          href="https://supabase.com/dashboard"
-          target="_blank"
-          rel="noreferrer"
+        <Link
+          href="/configuracoes/usuarios"
           className="group rounded-xl border border-gray-100 bg-white p-6 shadow-card transition hover:border-brand-teal/40 hover:shadow-md"
         >
           <div className="flex items-start justify-between">
             <div>
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-warning">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-teal/15 text-brand-teal">
                 <Users className="h-5 w-5" />
               </div>
               <h2 className="text-base font-semibold text-ink group-hover:text-brand-petrol">
                 Usuários e permissões
               </h2>
               <p className="mt-1 text-sm text-ink-muted">
-                Crie usuários em Authentication &gt; Users no painel do Supabase
-                e defina o papel na tabela profiles (admin, comercial,
-                operacional, financeiro, gestor ou consulta).
+                Convide pessoas por e-mail direto daqui: a pessoa confirma o
+                e-mail, cria a própria senha e entra com o papel que você
+                definir (admin, comercial, operacional, financeiro, gestor ou
+                consulta).
               </p>
             </div>
-            <ExternalLink className="h-5 w-5 text-gray-300 transition group-hover:text-brand-petrol" />
+            <ChevronRight className="h-5 w-5 text-gray-300 transition group-hover:text-brand-petrol" />
           </div>
-        </a>
+        </Link>
 
         <div className="rounded-xl border border-dashed border-gray-200 bg-white/50 p-6">
           <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-gray-400">

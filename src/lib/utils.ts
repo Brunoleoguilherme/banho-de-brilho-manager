@@ -7,16 +7,38 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Fuso fixo de Brasília — o servidor (Vercel) roda em UTC,
+// então sem isso os horários apareceriam 3h adiantados.
+const TZ = "America/Sao_Paulo";
+
 export function formatDate(date: string | Date | null | undefined): string {
   if (!date) return "—";
+  // Datas puras (ex.: "2026-07-05") não têm horário: formatar direto,
+  // sem conversão de fuso, senão o dia pode voltar 1.
+  if (typeof date === "string" && !date.includes("T")) {
+    return format(parseISO(date), "dd/MM/yyyy", { locale: ptBR });
+  }
   const d = typeof date === "string" ? parseISO(date) : date;
-  return format(d, "dd/MM/yyyy", { locale: ptBR });
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: TZ,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(d);
 }
 
 export function formatDateTime(date: string | Date | null | undefined): string {
   if (!date) return "—";
   const d = typeof date === "string" ? parseISO(date) : date;
-  return format(d, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  const s = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: TZ,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+  return s.replace(", ", " às ");
 }
 
 export function formatTime(time: string | null | undefined): string {

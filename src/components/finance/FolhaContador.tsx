@@ -12,6 +12,7 @@ import {
   Landmark,
   MinusCircle,
   BadgeDollarSign,
+  Users,
 } from "lucide-react";
 import { sendFolhaContadorAction } from "@/lib/actions/send-folha";
 import type { FolhaData } from "@/lib/folha";
@@ -46,6 +47,12 @@ export function FolhaContador({ data }: { data: FolhaData }) {
   }
 
   const cards = [
+    {
+      title: "Funcionários",
+      value: `${comDiarias.length}`,
+      hint: `com diárias no mês · ${data.linhas.length} ativos`,
+      icon: Users,
+    },
     {
       title: "Diárias no mês",
       value: `${t.totalDiarias}`,
@@ -136,7 +143,7 @@ export function FolhaContador({ data }: { data: FolhaData }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-4 xl:grid-cols-7">
         {cards.map((c) => (
           <div
             key={c.title}
@@ -163,6 +170,7 @@ export function FolhaContador({ data }: { data: FolhaData }) {
             <table className="w-full whitespace-nowrap text-left text-xs">
               <thead className="border-b border-gray-100 text-[10px] uppercase tracking-wide text-ink-muted">
                 <tr>
+                  <th className="py-2 pr-2 text-center">Nº</th>
                   <th className="py-2 pr-2">Nome</th>
                   <th className="py-2 pr-2 text-center">1ª Q.</th>
                   <th className="py-2 pr-2 text-center">2ª Q.</th>
@@ -180,8 +188,11 @@ export function FolhaContador({ data }: { data: FolhaData }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {comDiarias.map((l) => (
+                {comDiarias.map((l, i) => (
                   <tr key={l.it}>
+                    <td className="py-2 pr-2 text-center font-semibold text-ink-muted">
+                      {i + 1}
+                    </td>
                     <td className="py-2 pr-2 font-medium text-ink">{l.name}</td>
                     <td className="py-2 pr-2 text-center text-ink-muted">{l.q1}</td>
                     <td className="py-2 pr-2 text-center text-ink-muted">{l.q2}</td>
@@ -201,6 +212,7 @@ export function FolhaContador({ data }: { data: FolhaData }) {
               </tbody>
               <tfoot className="border-t-2 border-gray-200 font-semibold text-ink">
                 <tr>
+                  <td className="py-2 pr-2 text-center">{comDiarias.length}</td>
                   <td className="py-2 pr-2">TOTAIS</td>
                   <td className="py-2 pr-2 text-center">{t.q1}</td>
                   <td className="py-2 pr-2 text-center">{t.q2}</td>

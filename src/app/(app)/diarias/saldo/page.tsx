@@ -19,10 +19,15 @@ export default async function DiariasSaldoPage({
   const rows = filterDiarias(all, filters);
 
   // Consolidação por colaborador (como a lateral da planilha DIARIAS)
+  const pixById = new Map(
+    employees.map((e) => [e.id, (e as { pix_key?: string | null }).pix_key ?? null])
+  );
   const byEmp = new Map<string, ColaboradorSaldoRow>();
   for (const r of rows) {
     const e = byEmp.get(r.employee_name) ?? {
       name: r.employee_name,
+      employeeId: r.employee_id,
+      pix: pixById.get(r.employee_id) ?? null,
       count: 0, dr: 0, vr: 0, vt: 0, adiant: 0, pago: 0, saldo: 0,
       pendingIds: [] as string[],
       lastPaidAt: null as string | null,
@@ -47,6 +52,8 @@ export default async function DiariasSaldoPage({
     if (!byEmp.has(emp.full_name)) {
       byEmp.set(emp.full_name, {
         name: emp.full_name,
+        employeeId: emp.id,
+        pix: pixById.get(emp.id) ?? null,
         count: 0, dr: 0, vr: 0, vt: 0, adiant: 0, pago: 0, saldo: 0,
         pendingIds: [], lastPaidAt: null,
       });

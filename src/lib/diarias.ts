@@ -27,7 +27,10 @@ export async function getDiariasBase() {
           "*, employees(full_name), operation_shifts(service_date, phase), operation_orders(code, events(name))"
         )
         .order("created_at", { ascending: false }),
-      supabase.from("employees").select("id, full_name").order("full_name"),
+      supabase
+        .from("employees")
+        .select("id, full_name, pix_key")
+        .order("full_name"),
       supabase.from("operation_orders").select("id, code").order("code"),
     ]);
 

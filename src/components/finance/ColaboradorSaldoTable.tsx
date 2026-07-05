@@ -2,13 +2,16 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ListChecks, Banknote, X } from "lucide-react";
+import { ListChecks, Banknote, X, Copy, Check, KeyRound } from "lucide-react";
 import { markAllocationsPaidAction } from "@/lib/actions/finance";
+import { updateEmployeePixAction } from "@/lib/actions/employees";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 import { formatMoney, formatDate, cn } from "@/lib/utils";
 
 export interface ColaboradorSaldoRow {
   name: string;
+  employeeId?: string;
+  pix?: string | null;
   count: number;
   dr: number;
   vr: number;
@@ -27,7 +30,20 @@ export function ColaboradorSaldoTable({ rows }: { rows: ColaboradorSaldoRow[] })
   const [payDate, setPayDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
+  const [pix, setPix] = useState("");
+  const [pixOriginal, setPixOriginal] = useState("");
+  const [copied, setCopied] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  async function copyPix() {
+    try {
+      await navigator.clipboard.writeText(pix);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard indisponível */
+    }
+  }
 
   const tot = rows.reduce(
     (acc, e) => ({
@@ -46,6 +62,10 @@ export function ColaboradorSaldoTable({ rows }: { rows: ColaboradorSaldoRow[] })
     if (!paying) return;
     const row = paying;
     startTransition(async () => {
+      // Salva o PIX se foi alterado no modal
+      if (row.employeeId && pix.trim() !== pixOriginal.trim()) {
+        await updateEmployeePixAction(row.employeeId, pix);
+      }
       const result = await markAllocationsPaidAction(row.pendingIds, {
         paidDate: payDate,
         label: row.name,
@@ -146,6 +166,9 @@ export function ColaboradorSaldoTable({ rows }: { rows: ColaboradorSaldoRow[] })
                     <button
                       onClick={() => {
                         setPayDate(new Date().toISOString().slice(0, 10));
+                        setPix(e.pix ?? "");
+                        setPixOriginal(e.pix ?? "");
+                        setCopied(false);
                         setPaying(e);
                       }}
                       className="inline-flex items-center gap-1 rounded-lg bg-brand-teal px-2.5 py-1 text-xs font-semibold text-white transition hover:opacity-90"
@@ -192,7 +215,7 @@ export function ColaboradorSaldoTable({ rows }: { rows: ColaboradorSaldoRow[] })
               {paying.pendingIds.length} diária(s) pendente(s) serão marcadas
               como pagas e lançadas no Financeiro (Diárias Eventos).
             </p>
-            <div className="mb-4 grid grid-cols-2 gap-3">
+            <div className="mb-3 grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-muted">
                   Data de pagamento
@@ -212,6 +235,39 @@ export function ColaboradorSaldoTable({ rows }: { rows: ColaboradorSaldoRow[] })
                   {formatMoney(paying.saldo)}
                 </p>
               </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="mb-1 flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-ink-muted">
+                <KeyRound className="h-3.5 w-3.5 text-brand-teal" />
+                PIX de {paying.name.split(" ")[0]}
+              </label>
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  value={pix}
+                  onChange={(ev) => setPix(ev.target.value)}
+                  placeholder="CPF, telefone, e-mail ou chave aleatória"
+                  className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+                />
+                <button
+                  type="button"
+                  onClick={copyPix}
+                  disabled={!pix}
+                  title="Copiar PIX"
+                  className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-ink transition hover:bg-gray-50 disabled:opacity-40"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-success" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  {copied ? "Copiado!" : "Copiar"}
+                </button>
+              </div>
+              <p className="mt-1 text-[11px] text-ink-muted">
+                Alterou o PIX? Ele fica salvo no cadastro ao confirmar.
+              </p>
             </div>
             <div className="flex justify-end gap-2">
               <button

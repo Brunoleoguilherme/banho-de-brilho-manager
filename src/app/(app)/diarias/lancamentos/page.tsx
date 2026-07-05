@@ -16,6 +16,12 @@ export default async function DiariasLancamentosPage({
   const filters = await searchParams;
   const { rows: all, employees, orders } = await getDiariasBase();
   const rows = filterDiarias(all, filters);
+  const pixById = Object.fromEntries(
+    employees.map((e) => [
+      e.id,
+      (e as { pix_key?: string | null }).pix_key ?? null,
+    ])
+  );
 
   return (
     <div>
@@ -71,7 +77,7 @@ export default async function DiariasLancamentosPage({
           description="As diárias aparecem aqui quando você escala funcionários nos turnos das OS (Operação)."
         />
       ) : (
-        <DiariasTable rows={rows} />
+        <DiariasTable rows={rows} pixById={pixById} />
       )}
     </div>
   );

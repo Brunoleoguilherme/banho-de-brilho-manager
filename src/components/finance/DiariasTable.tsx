@@ -2,17 +2,30 @@
 
 import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, CheckCircle2, Loader2, X, Trash2, ShieldAlert } from "lucide-react";
+import {
+  Pencil,
+  CheckCircle2,
+  Loader2,
+  X,
+  Trash2,
+  ShieldAlert,
+  Banknote,
+  Copy,
+  Check,
+  KeyRound,
+} from "lucide-react";
 import {
   markAllocationsPaidAction,
   updateAllocationValuesAction,
   deleteDiariaAction,
 } from "@/lib/actions/finance";
+import { updateEmployeePixAction } from "@/lib/actions/employees";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 import { formatMoney, formatDate, cn } from "@/lib/utils";
 
 export interface DiariaRow {
   id: string;
+  employee_id?: string;
   employee_name: string;
   os_code: string;
   event_name: string;
@@ -45,9 +58,20 @@ const PHASE_LABEL: Record<string, string> = {
   desmontagem: "Desmontagem",
 };
 
-export function DiariasTable({ rows }: { rows: DiariaRow[] }) {
+export function DiariasTable({
+  rows,
+  pixById,
+}: {
+  rows: DiariaRow[];
+  pixById?: Record<string, string | null>;
+}) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [payOpen, setPayOpen] = useState(false);
+  const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [pix, setPix] = useState("");
+  const [pixOriginal, setPixOriginal] = useState("");
+  const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     daily_rate: 0,
@@ -91,18 +115,52 @@ export function DiariasTable({ rows }: { rows: DiariaRow[] }) {
     else setSelected(new Set(selectable.map((r) => r.id)));
   }
 
-  async function handleMarkPaid() {
-    if (
-      !confirm(
-        `Marcar ${selected.size} diária(s) como paga(s)? Confirme após realizar os pagamentos (PIX/transferência).`
-      )
-    )
-      return;
+  // Resumo da seleção atual (para a caixinha de pagamento)
+  const selRows = rows.filter((r) => selected.has(r.id));
+  const selTotal = selRows.reduce((s, r) => s + r.balance_amount, 0);
+  const selEmpNames = Array.from(new Set(selRows.map((r) => r.employee_name)));
+  const singleEmp = selEmpNames.length === 1 ? selRows[0] : null;
+
+  async function copyPix() {
+    try {
+      await navigator.clipboard.writeText(pix);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard indisponível */
+    }
+  }
+
+  function openPayModal() {
+    if (selected.size === 0) return;
+    setPayDate(new Date().toISOString().slice(0, 10));
+    const key =
+      singleEmp?.employee_id && pixById
+        ? pixById[singleEmp.employee_id] ?? ""
+        : "";
+    setPix(key);
+    setPixOriginal(key);
+    setCopied(false);
+    setError(null);
+    setPayOpen(true);
+  }
+
+  async function confirmPay() {
     setBusy(true);
     setError(null);
-    const result = await markAllocationsPaidAction(Array.from(selected));
+    // Salva o PIX se foi alterado no modal (só quando é 1 funcionário)
+    if (singleEmp?.employee_id && pix.trim() !== pixOriginal.trim()) {
+      await updateEmployeePixAction(singleEmp.employee_id, pix);
+    }
+    const result = await markAllocationsPaidAction(Array.from(selected), {
+      paidDate: payDate,
+      label: singleEmp
+        ? singleEmp.employee_name
+        : `${selEmpNames.length} funcionários`,
+    });
     if (!result.ok) setError(result.error);
     setSelected(new Set());
+    setPayOpen(false);
     setBusy(false);
     router.refresh();
   }
@@ -164,7 +222,18 @@ export function DiariasTable({ rows }: { rows: DiariaRow[] }) {
         const pendingIds = list
           .filter((r) => !r.paid && r.status !== "pago")
           .map((r) => r.id);
-        return { name, list, sums, pendingIds };
+        const pagas = list.filter((r) => r.status === "pago").length;
+        const datas = list
+          .map((r) => r.service_date)
+          .filter(Boolean)
+          .sort();
+        const periodo =
+          datas.length === 0
+            ? ""
+            : datas[0] === datas[datas.length - 1]
+              ? formatDate(datas[0])
+              : `${formatDate(datas[0])} a ${formatDate(datas[datas.length - 1])}`;
+        return { name, list, sums, pendingIds, pagas, periodo };
       });
   })();
 
@@ -197,7 +266,7 @@ export function DiariasTable({ rows }: { rows: DiariaRow[] }) {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
-            onClick={handleMarkPaid}
+            onClick={openPayModal}
             disabled={selected.size === 0 || busy}
             className="flex items-center gap-1.5 rounded-lg bg-success px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
           >
@@ -245,10 +314,10 @@ export function DiariasTable({ rows }: { rows: DiariaRow[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {groups.map((g) => (
+            {groups.map((g, gi) => (
               <Fragment key={g.name}>
-              <tr className="border-t-2 border-gray-200 bg-brand-petrol/5">
-                <td className="px-3 py-2.5">
+              <tr className="border-t-4 border-brand-petrol/15 bg-brand-petrol/5">
+                <td className="px-3 py-3">
                   {g.pendingIds.length > 0 && (
                     <input
                       type="checkbox"
@@ -259,28 +328,51 @@ export function DiariasTable({ rows }: { rows: DiariaRow[] }) {
                     />
                   )}
                 </td>
-                <td className="px-3 py-2.5 font-semibold text-ink" colSpan={2}>
-                  {g.name}
+                <td className="px-3 py-3" colSpan={2}>
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-petrol text-[11px] font-bold text-white">
+                      {gi + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-ink">{g.name}</p>
+                      <p className="text-[11px] text-ink-muted">
+                        {g.pendingIds.length > 0 && (
+                          <span className="font-semibold text-warning">
+                            {g.pendingIds.length} a pagar
+                          </span>
+                        )}
+                        {g.pendingIds.length > 0 && g.pagas > 0 && " · "}
+                        {g.pagas > 0 && (
+                          <span className="font-semibold text-success">
+                            {g.pagas} paga{g.pagas > 1 ? "s" : ""}
+                          </span>
+                        )}
+                        {g.periodo && (
+                          <span> · {g.periodo}</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
                 </td>
-                <td className="px-3 py-2.5 text-right font-semibold text-ink">
+                <td className="px-3 py-3 text-right font-semibold text-ink">
                   {formatMoney(g.sums.dr)}
                 </td>
-                <td className="px-3 py-2.5 text-right font-semibold text-ink">
+                <td className="px-3 py-3 text-right font-semibold text-ink">
                   {formatMoney(g.sums.vr)}
                 </td>
-                <td className="px-3 py-2.5 text-right font-semibold text-ink">
+                <td className="px-3 py-3 text-right font-semibold text-ink">
                   {formatMoney(g.sums.vt)}
                 </td>
-                <td className="px-3 py-2.5 text-right font-semibold text-ink">
+                <td className="px-3 py-3 text-right font-semibold text-ink">
                   {formatMoney(g.sums.adv)}
                 </td>
-                <td className="px-3 py-2.5 text-right font-semibold text-warning">
+                <td className="px-3 py-3 text-right font-semibold text-warning">
                   {formatMoney(g.sums.saldo)}
                 </td>
-                <td className="px-3 py-2.5 text-right font-bold text-ink">
+                <td className="px-3 py-3 text-right font-bold text-ink">
                   {formatMoney(g.sums.total)}
                 </td>
-                <td className="px-3 py-2.5" colSpan={2}>
+                <td className="px-3 py-3" colSpan={2}>
                   <span className="inline-flex rounded-full bg-brand-petrol px-2.5 py-0.5 text-xs font-bold text-white">
                     {g.list.length} diária{g.list.length > 1 ? "s" : ""}
                   </span>
@@ -401,15 +493,17 @@ export function DiariasTable({ rows }: { rows: DiariaRow[] }) {
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-0.5">
-                        {row.status !== "pago" && (
-                          <button
-                            onClick={() => startEdit(row)}
-                            className="rounded p-1 text-gray-400 hover:text-brand-petrol"
-                            title="Ajustar valores"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => startEdit(row)}
+                          className="rounded p-1 text-gray-400 hover:text-brand-petrol"
+                          title={
+                            row.status === "pago"
+                              ? "Editar valores (diária já paga)"
+                              : "Ajustar valores"
+                          }
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           onClick={() => {
                             setDeleting(row);
@@ -447,6 +541,112 @@ export function DiariasTable({ rows }: { rows: DiariaRow[] }) {
           </tfoot>
         </table>
       </div>
+
+      {payOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => !busy && setPayOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-teal/10">
+                <Banknote className="h-5 w-5 text-brand-teal" />
+              </span>
+              <h3 className="text-base font-semibold text-ink">
+                Pagar diárias —{" "}
+                {singleEmp
+                  ? singleEmp.employee_name
+                  : `${selEmpNames.length} funcionários`}
+              </h3>
+            </div>
+            <p className="mb-4 text-sm text-ink-muted">
+              {selected.size} diária(s) serão marcadas como pagas e lançadas no
+              Financeiro (Diárias Eventos).
+            </p>
+            <div className="mb-3 grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-muted">
+                  Data de pagamento
+                </label>
+                <input
+                  type="date"
+                  value={payDate}
+                  onChange={(ev) => setPayDate(ev.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-muted">
+                  Valor
+                </label>
+                <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-bold text-ink">
+                  {formatMoney(selTotal)}
+                </p>
+              </div>
+            </div>
+
+            {singleEmp ? (
+              <div className="mb-4">
+                <label className="mb-1 flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-ink-muted">
+                  <KeyRound className="h-3.5 w-3.5 text-brand-teal" />
+                  PIX de {singleEmp.employee_name.split(" ")[0]}
+                </label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={pix}
+                    onChange={(ev) => setPix(ev.target.value)}
+                    placeholder="CPF, telefone, e-mail ou chave aleatória"
+                    className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+                  />
+                  <button
+                    type="button"
+                    onClick={copyPix}
+                    disabled={!pix}
+                    title="Copiar PIX"
+                    className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-ink transition hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-success" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    {copied ? "Copiado!" : "Copiar"}
+                  </button>
+                </div>
+                <p className="mt-1 text-[11px] text-ink-muted">
+                  Alterou o PIX? Ele fica salvo no cadastro ao confirmar.
+                </p>
+              </div>
+            ) : (
+              <p className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-ink-muted">
+                Seleção com mais de um funcionário — para ver o PIX de cada um,
+                pague por pessoa ou use a tela Saldo por colaborador.
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setPayOpen(false)}
+                disabled={busy}
+                className="rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-ink transition hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmPay}
+                disabled={busy || !payDate}
+                className="flex items-center gap-1.5 rounded-lg bg-brand-teal px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              >
+                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                Confirmar pagamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deleting && (
         <div

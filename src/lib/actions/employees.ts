@@ -6,6 +6,28 @@ import { createClient } from "@/lib/supabase/server";
 import { employeeSchema } from "@/lib/validations/employee";
 import { logActivity, emptyToNull, type ActionResult } from "./helpers";
 
+/** Atualiza a chave PIX do colaborador (edição rápida na tela de pagamento) */
+export async function updateEmployeePixAction(
+  employeeId: string,
+  pix: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("employees")
+    .update({ pix_key: pix.trim() || null })
+    .eq("id", employeeId);
+  if (error)
+    return {
+      ok: false,
+      error:
+        "Erro ao salvar o PIX. Se aparecer 'pix_key does not exist', rode a migration 0030 no Supabase.",
+    };
+  revalidatePath("/diarias/saldo");
+  revalidatePath("/diarias/lancamentos");
+  revalidatePath("/funcionarios");
+  return { ok: true };
+}
+
 /**
  * Exclui um colaborador — exige a senha de login de quem solicita.
  * Quem já tem escala/diárias não pode ser excluído (use Inativo).

@@ -74,7 +74,10 @@ export function DeleteEventButton({
               Excluir o evento &quot;{eventName}&quot;?
             </h3>
             <p className="mt-1 text-sm text-ink-muted">
-              Esta ação não pode ser desfeita. Para confirmar, digite a{" "}
+              ⚠️ Serão apagados também <strong>tudo o que nasceu deste
+              evento</strong>: propostas, contratos, OS (escala, turnos e
+              checklist) e contas a receber vinculadas. Esta ação não pode
+              ser desfeita. Para confirmar, digite a{" "}
               <strong>sua senha de login</strong>:
             </p>
 

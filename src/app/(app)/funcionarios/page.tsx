@@ -11,7 +11,7 @@ export default async function EmployeesPage() {
   const supabase = await createClient();
   const { data: employees } = await supabase
     .from("employees")
-    .select("id, full_name, main_role, phone, daily_rate, vr_rate, vt_rate, neighborhood, status, employee_type")
+    .select("id, full_name, main_role, phone, daily_rate, vr_rate, vt_rate, neighborhood, pix_key, status, employee_type")
     .order("full_name");
 
   const all = (employees ?? []) as (EmployeeRow & { employee_type: string })[];

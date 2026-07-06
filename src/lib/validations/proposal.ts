@@ -3,6 +3,11 @@ import { z } from "zod";
 const optionalText = z.string().optional();
 const money = z.coerce.number().min(0, "Valor inválido");
 const percent = z.coerce.number().min(0, "Mínimo 0").max(100, "Máximo 100");
+// Margem pode passar de 100% (ex.: markup de 150%)
+const marginPercent = z.coerce
+  .number()
+  .min(0, "Mínimo 0")
+  .max(1000, "Máximo 1000");
 
 export const scheduleItemSchema = z.object({
   phase: z.enum(["montagem", "realizacao", "desmontagem"]),
@@ -39,7 +44,7 @@ export const proposalSchema = z.object({
   responsibilities_company: optionalText,
   responsibilities_client: optionalText,
   notes: optionalText,
-  margin_percent: percent,
+  margin_percent: marginPercent,
   bv_percent: percent,
   discount_percent: percent,
   tax_percent_nf: percent,

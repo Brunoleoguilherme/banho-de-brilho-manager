@@ -534,7 +534,7 @@ export function ProposalForm({
 
         <div className="mt-5 grid grid-cols-2 gap-4 border-t border-gray-100 pt-5 md:grid-cols-5">
           <Field label="Margem (%)" error={errors.margin_percent?.message}>
-            <input type="number" min={0} max={100} step="0.01" className="input-base" {...register("margin_percent")} />
+            <input type="number" min={0} max={1000} step="0.01" className="input-base" {...register("margin_percent")} />
           </Field>
           <Field label="BV (%)" error={errors.bv_percent?.message}>
             <input type="number" min={0} max={100} step="0.01" className="input-base" {...register("bv_percent")} />

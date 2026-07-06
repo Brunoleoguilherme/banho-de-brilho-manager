@@ -199,15 +199,52 @@ export async function deleteEventAction(
     .single();
   if (!event) return { ok: false, error: "Evento não encontrado." };
 
-  const { count: proposalsCount } = await supabase
+  // ============ EXCLUSÃO EM CASCATA ============
+  // Apaga tudo que nasceu deste evento: propostas, contratos, OS
+  // (turnos, escala, checklist, veículos) e contas a receber.
+
+  const { data: proposals } = await supabase
     .from("proposals")
-    .select("*", { count: "exact", head: true })
+    .select("id, code")
     .eq("event_id", id);
-  if ((proposalsCount ?? 0) > 0)
-    return {
-      ok: false,
-      error: `"${event.name}" tem ${proposalsCount} proposta(s) vinculada(s) e não pode ser excluído — isso apagaria o histórico.`,
-    };
+  const proposalIds = (proposals ?? []).map((p) => p.id as string);
+
+  // OS ligadas ao evento ou às propostas
+  const { data: osByEvent } = await supabase
+    .from("operation_orders")
+    .select("id")
+    .eq("event_id", id);
+  let osIds = (osByEvent ?? []).map((o) => o.id as string);
+  if (proposalIds.length > 0) {
+    const { data: osByProposal } = await supabase
+      .from("operation_orders")
+      .select("id")
+      .in("proposal_id", proposalIds);
+    osIds = Array.from(
+      new Set([...osIds, ...(osByProposal ?? []).map((o) => o.id as string)])
+    );
+  }
+
+  if (osIds.length > 0) {
+    await supabase.from("employee_allocations").delete().in("operation_order_id", osIds);
+    await supabase.from("operation_shifts").delete().in("operation_order_id", osIds);
+    await supabase.from("operation_checklist_items").delete().in("operation_order_id", osIds);
+    await supabase.from("os_vehicles").delete().in("operation_order_id", osIds);
+    await supabase.from("receivables").delete().in("operation_order_id", osIds);
+    await supabase.from("operation_orders").delete().in("id", osIds);
+  }
+
+  if (proposalIds.length > 0) {
+    await supabase.from("receivables").delete().in("proposal_id", proposalIds);
+    await supabase.from("contracts").delete().in("proposal_id", proposalIds);
+    await supabase.from("email_logs").delete().in("proposal_id", proposalIds);
+    await supabase.from("proposal_items").delete().in("proposal_id", proposalIds);
+    await supabase.from("proposals").delete().in("id", proposalIds);
+  }
+
+  // Filhos diretos do evento
+  await supabase.from("event_schedules").delete().eq("event_id", id);
+  await supabase.from("responsibility_items").delete().eq("event_id", id);
 
   const { error } = await supabase.from("events").delete().eq("id", id);
   if (error) return { ok: false, error: "Erro ao excluir. " + error.message };
@@ -216,11 +253,15 @@ export async function deleteEventAction(
     entity_type: "event",
     entity_id: id,
     action: "deleted",
-    description: `Evento "${event.name}" EXCLUÍDO por ${user.email} (senha confirmada)`,
+    description: `Evento "${event.name}" EXCLUÍDO com tudo vinculado (${proposalIds.length} proposta(s), ${osIds.length} OS) por ${user.email} (senha confirmada)`,
   });
 
   revalidatePath("/eventos");
   revalidatePath("/calendario");
+  revalidatePath("/propostas");
+  revalidatePath("/contratos");
+  revalidatePath("/operacao");
+  revalidatePath("/financeiro");
   return { ok: true };
 }
 

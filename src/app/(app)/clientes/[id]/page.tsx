@@ -97,6 +97,7 @@ export default async function ClientDetailPage({
                     client.address_complement,
                     client.neighborhood,
                     client.city && `${client.city}/${client.state ?? ""}`,
+                    client.zip_code && `CEP ${client.zip_code}`,
                   ]
                     .filter(Boolean)
                     .join(" – ") || "—"}

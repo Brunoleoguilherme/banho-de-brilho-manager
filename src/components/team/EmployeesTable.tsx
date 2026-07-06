@@ -23,6 +23,7 @@ export interface EmployeeRow {
   vr_rate: number;
   vt_rate: number;
   neighborhood: string | null;
+  pix_key?: string | null;
   status: string;
 }
 
@@ -72,6 +73,7 @@ export function EmployeesTable({ rows }: { rows: EmployeeRow[] }) {
                 <th className="px-4 py-3">Função</th>
                 <th className="px-4 py-3">Telefone</th>
                 <th className="px-4 py-3 text-right">VT</th>
+                <th className="px-4 py-3">PIX</th>
                 <th className="px-4 py-3">Bairro</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Ações</th>
@@ -91,6 +93,12 @@ export function EmployeesTable({ rows }: { rows: EmployeeRow[] }) {
                   </td>
                   <td className="px-4 py-3 text-right text-ink-muted">
                     {formatMoney(Number(emp.vt_rate))}
+                  </td>
+                  <td
+                    className="max-w-[160px] truncate px-4 py-3 text-ink-muted"
+                    title={emp.pix_key ?? undefined}
+                  >
+                    {emp.pix_key || "—"}
                   </td>
                   <td className="px-4 py-3 text-ink-muted">
                     {emp.neighborhood ?? "—"}

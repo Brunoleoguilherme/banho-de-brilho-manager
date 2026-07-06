@@ -136,10 +136,66 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
     data.schedule.some((s) => s.phase === phase)
   );
 
-  const eventDateLabel = data.event?.end_date &&
-    data.event.end_date !== data.event.start_date
-      ? `${longDate(data.event.start_date)} a ${longDate(data.event.end_date)}`
-      : longDate(data.event?.start_date ?? null);
+  // Dias reais de realização (do cronograma) — respeita dias avulsos
+  const realDays = data.schedule
+    .filter((s) => s.phase === "realizacao" && s.service_date)
+    .sort((a, b) => (a.service_date > b.service_date ? 1 : -1));
+  const uniqDates = Array.from(new Set(realDays.map((s) => s.service_date)));
+
+  const consecutivos =
+    uniqDates.length > 1 &&
+    uniqDates.every(
+      (d, i) =>
+        i === 0 ||
+        (parseISO(d).getTime() - parseISO(uniqDates[i - 1]).getTime()) /
+          86400000 ===
+          1
+    );
+
+  let eventDateLabel: string;
+  if (uniqDates.length === 0) {
+    // Sem cronograma de realização: usa as datas do evento
+    eventDateLabel =
+      data.event?.end_date && data.event.end_date !== data.event.start_date
+        ? `${longDate(data.event.start_date)} a ${longDate(data.event.end_date)}`
+        : longDate(data.event?.start_date ?? null);
+  } else if (uniqDates.length === 1) {
+    eventDateLabel = longDate(uniqDates[0]);
+  } else if (consecutivos) {
+    eventDateLabel = `${longDate(uniqDates[0])} a ${longDate(uniqDates[uniqDates.length - 1])}`;
+  } else {
+    // Dias avulsos: "03 e 06 de julho de 2026" (mesmo mês) ou lista completa
+    const mesmoMes = uniqDates.every(
+      (d) => d.slice(0, 7) === uniqDates[0].slice(0, 7)
+    );
+    if (mesmoMes) {
+      const dias = uniqDates.map((d) => format(parseISO(d), "dd"));
+      const sufixo = format(parseISO(uniqDates[0]), "'de' MMMM 'de' yyyy", {
+        locale: ptBR,
+      });
+      eventDateLabel = `${dias.slice(0, -1).join(", ")} e ${dias[dias.length - 1]} ${sufixo}`;
+    } else {
+      eventDateLabel = uniqDates.map((d) => longDate(d)).join(" e ");
+    }
+  }
+
+  // Horários da realização: um por dia quando forem diferentes
+  const uniqTimes = Array.from(
+    new Set(
+      realDays
+        .map((s) => timeRange(s.start_time, s.end_time))
+        .filter((t) => t !== "—")
+    )
+  );
+  const horarioUnico =
+    uniqTimes.length === 1
+      ? uniqTimes[0]
+      : uniqTimes.length === 0
+        ? timeRange(
+            data.event?.event_start_time ?? null,
+            data.event?.event_end_time ?? null
+          )
+        : null;
 
   return (
     <Document title={`Proposta ${data.code}`} author={COMPANY.name}>
@@ -174,13 +230,22 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
             <Text style={styles.label}>Data da realização: </Text>
             {eventDateLabel}
           </Text>
-          <Text>
-            <Text style={styles.label}>Horário do evento: </Text>
-            {timeRange(
-              data.event?.event_start_time ?? null,
-              data.event?.event_end_time ?? null
-            )}
-          </Text>
+          {horarioUnico !== null ? (
+            <Text>
+              <Text style={styles.label}>Horário do evento: </Text>
+              {horarioUnico}
+            </Text>
+          ) : (
+            <>
+              <Text style={styles.label}>Horário do evento:</Text>
+              {realDays.map((s, i) => (
+                <Text key={i}>
+                  {"   "}
+                  {shortDate(s.service_date)}: {timeRange(s.start_time, s.end_time)}
+                </Text>
+              ))}
+            </>
+          )}
           {data.event?.estimated_public ? (
             <Text>
               <Text style={styles.label}>Público estimado: </Text>
@@ -253,7 +318,8 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
             <Text style={styles.label}>Valor e forma de pagamento: </Text>
             {money(data.total_amount)}
             {data.amount_in_words ? ` (${data.amount_in_words})` : ""}
-            {data.payment_terms ? `, ${data.payment_terms.toLowerCase()}` : ""}.
+            {data.payment_terms ? `, ${data.payment_terms.toLowerCase()}` : ""}
+            {" e pagamento através de depósito junto ao Banco Inter (077) - Agência: 15.658.494-8 - PIX: CNPJ 03 232 988 0001 02."}
           </Text>
           {data.valid_until ? (
             <Text style={{ marginTop: 4 }}>

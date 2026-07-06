@@ -57,7 +57,7 @@ export default async function UsuariosPage() {
       id: p.id as string,
       full_name: (p.full_name as string) ?? "",
       email: authById.get(p.id)?.email ?? "—",
-      role: (p.role as string) ?? "consulta",
+      role: (p.role as string) ?? "comercial",
       active: !!p.active,
       confirmed: authById.get(p.id)?.confirmed ?? false,
     }))
@@ -67,7 +67,7 @@ export default async function UsuariosPage() {
     <div>
       <PageHeader
         title="Usuários e permissões"
-        description="Convide pessoas por e-mail e defina o papel de cada uma — sem precisar do painel do Supabase"
+        description="Crie usuários com senha e defina o papel de cada um — sem confirmação por e-mail nem painel do Supabase"
       />
       <UsersManager users={users} />
     </div>

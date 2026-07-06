@@ -55,6 +55,8 @@ export default async function CalendarPage() {
   const entries: CalendarEntry[] = [];
   for (const e of events ?? []) {
     const os = (e.operation_orders as { id: string; code: string }[] | null)?.[0];
+    // Só entra no calendário depois do aceite da proposta (quando existe OS)
+    if (!os) continue;
     const clientName =
       (e.clients as unknown as { name: string } | null)?.name ?? "";
     const eventSchedules = (schedules ?? []).filter(

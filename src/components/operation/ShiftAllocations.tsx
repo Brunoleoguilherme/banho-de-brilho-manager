@@ -25,6 +25,7 @@ export interface EmployeeOption {
   id: string;
   full_name: string;
   main_role: string;
+  employee_type?: string;
   daily_rate: number;
   vr_rate: number;
   vt_rate: number;
@@ -67,6 +68,13 @@ export function ShiftAllocations({
     vr_amount: 0,
     vt_amount: 0,
   });
+  // Aba de origem: funcionários registrados × free lancers
+  const [tipoAba, setTipoAba] = useState<"funcionario" | "freelancer">(
+    "funcionario"
+  );
+  const opcoesDaAba = employees.filter(
+    (e) => (e.employee_type ?? "funcionario") === tipoAba
+  );
 
   function handleEmployeeSelect(id: string) {
     const emp = employees.find((e) => e.id === id);
@@ -259,17 +267,44 @@ export function ShiftAllocations({
           className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-surface/60 p-3"
         >
           <div className="min-w-48 flex-1">
-            <label className="mb-1 block text-xs font-medium text-ink-muted">
-              Funcionário
-            </label>
+            <div className="mb-1.5 flex gap-1">
+              {(
+                [
+                  ["funcionario", "Funcionários"],
+                  ["freelancer", "Free lancers"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    setTipoAba(value);
+                    setForm({ ...form, employee_id: "" });
+                  }}
+                  className={
+                    tipoAba === value
+                      ? "rounded-full bg-brand-petrol px-3 py-1 text-xs font-semibold text-white"
+                      : "rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-ink-muted hover:bg-gray-50"
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <select
               required
               className="input-base"
               value={form.employee_id}
               onChange={(e) => handleEmployeeSelect(e.target.value)}
             >
-              <option value="">Selecione...</option>
-              {employees.map((emp) => (
+              <option value="">
+                {opcoesDaAba.length === 0
+                  ? tipoAba === "freelancer"
+                    ? "Nenhum free lancer ativo cadastrado"
+                    : "Nenhum funcionário ativo cadastrado"
+                  : "Selecione..."}
+              </option>
+              {opcoesDaAba.map((emp) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.full_name}
                 </option>

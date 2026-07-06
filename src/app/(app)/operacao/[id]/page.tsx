@@ -62,7 +62,7 @@ export default async function OperationDetailPage({
       .order("sort_order"),
     supabase
       .from("employees")
-      .select("id, full_name, main_role, daily_rate, vr_rate, vt_rate")
+      .select("id, full_name, main_role, daily_rate, vr_rate, vt_rate, employee_type")
       .eq("status", "ativo")
       .order("full_name"),
     supabase
@@ -109,6 +109,7 @@ export default async function OperationDetailPage({
     id: e.id,
     full_name: e.full_name,
     main_role: e.main_role,
+    employee_type: (e.employee_type as string) ?? "funcionario",
     daily_rate: Number(e.daily_rate) || 0,
     vr_rate: Number(e.vr_rate) || 0,
     vt_rate: Number(e.vt_rate) || 0,

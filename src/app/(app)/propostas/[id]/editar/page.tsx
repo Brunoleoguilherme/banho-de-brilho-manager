@@ -18,6 +18,7 @@ export default async function EditProposalPage({
     { data: items },
     { data: events },
     { data: eventSchedules },
+    { data: settings },
   ] =
     await Promise.all([
       supabase.from("proposals").select("*").eq("id", id).single(),
@@ -35,9 +36,21 @@ export default async function EditProposalPage({
         .from("event_schedules")
         .select("event_id, service_type, service_date, start_time, end_time")
         .order("service_date"),
+      supabase.from("app_settings").select("key, value"),
     ]);
 
   if (!proposal) notFound();
+
+  // Percentuais do Custo do Evento (mesmos do Financeiro)
+  const pct = (key: string, fallback: number): number => {
+    const found = (settings ?? []).find((s) => s.key === key);
+    return found ? Number(found.value) : fallback;
+  };
+  const costPercents = {
+    custoFixo: pct("custo_fixo_pct", 21.79),
+    encargos: pct("encargos_pct", 12.9),
+    diversos: pct("diversos_pct", 4.0),
+  };
 
   const eventOptions = (events ?? []).map((e) => ({
     id: e.id,
@@ -96,6 +109,7 @@ export default async function EditProposalPage({
         events={eventOptions}
         proposalId={proposal.id}
         defaultValues={defaultValues}
+        costPercents={costPercents}
       />
     </div>
   );

@@ -55,6 +55,8 @@ interface ProposalFormProps {
   proposalId?: string;
   defaultValues?: Partial<ProposalInput>;
   defaultEventId?: string;
+  /** Percentuais do Custo do Evento (Financeiro) p/ lucro real estimado */
+  costPercents?: { custoFixo: number; encargos: number; diversos: number };
 }
 
 export function ProposalForm({
@@ -62,6 +64,7 @@ export function ProposalForm({
   proposalId,
   defaultValues,
   defaultEventId,
+  costPercents,
 }: ProposalFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -598,6 +601,39 @@ export function ProposalForm({
                     {formatMoney(finalTotal - pricing.totalCost - (values.emission_type === "recibo" ? pricing.taxesReceipt : pricing.taxesNf))}
                   </span>
                 </p>
+                {costPercents && (() => {
+                  // Lucro real: mesma regra do Custo do Evento (Financeiro)
+                  const pctTotal =
+                    costPercents.custoFixo +
+                    costPercents.encargos +
+                    costPercents.diversos;
+                  const indiretos = (finalTotal * pctTotal) / 100;
+                  const impostos =
+                    values.emission_type === "recibo"
+                      ? pricing.taxesReceipt
+                      : pricing.taxesNf;
+                  const lucroReal =
+                    finalTotal - pricing.totalCost - impostos - indiretos;
+                  const lucroPct =
+                    finalTotal > 0 ? (lucroReal / finalTotal) * 100 : 0;
+                  return (
+                    <p className="mt-1">
+                      Lucro real estimado (c/ custo fixo{" "}
+                      {costPercents.custoFixo}% + encargos{" "}
+                      {costPercents.encargos}% + diversos{" "}
+                      {costPercents.diversos}%):{" "}
+                      <span
+                        className={
+                          lucroReal >= 0
+                            ? "font-bold text-brand-teal"
+                            : "font-bold text-red-400"
+                        }
+                      >
+                        {formatMoney(lucroReal)} ({lucroPct.toFixed(1)}%)
+                      </span>
+                    </p>
+                  );
+                })()}
               </div>
             </div>
           </div>

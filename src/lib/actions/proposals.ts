@@ -112,7 +112,16 @@ export async function deleteHistoricalProposalAction(
 
 function buildCode(number: number, year: number, revision: number): string {
   const base = `BBP${String(number).padStart(3, "0")}`;
-  return revision > 0 ? `${base}R${revision}/${year}` : `${base}/${year}`;
+  // 1ª revisão = BBP003R/2026 (padrão histórico da BB); depois R2, R3...
+  if (revision === 1) return `${base}R/${year}`;
+  return revision > 1 ? `${base}R${revision}/${year}` : `${base}/${year}`;
+}
+
+/** Data de hoje no fuso de Brasília (o servidor roda em UTC) */
+function hojeBrasilia(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+  }).format(new Date());
 }
 
 function buildProposalRecord(data: ProposalInput) {
@@ -440,6 +449,8 @@ export async function createRevisionAction(id: string): Promise<ActionResult> {
       revision: newRevision,
       code,
       status: "rascunho",
+      // Revisão sai com a data de hoje (pedido do Cláudio)
+      issue_date: hojeBrasilia(),
       created_by: user?.id,
     })
     .select("id, code")

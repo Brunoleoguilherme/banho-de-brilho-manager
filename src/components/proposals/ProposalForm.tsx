@@ -14,7 +14,7 @@ import {
   createProposalAction,
   updateProposalAction,
 } from "@/lib/actions/proposals";
-import { calculatePricing } from "@/lib/money/pricing";
+import { calculatePricing, itemTotal, SEM_HORAS } from "@/lib/money/pricing";
 import { valorPorExtenso } from "@/lib/money/extenso";
 import { formatMoney } from "@/lib/utils";
 import { FormSection } from "@/components/ui/FormSection";
@@ -188,6 +188,7 @@ export function ProposalForm({
       hours: i.hours === "" || i.hours === undefined ? null : Number(i.hours),
       unit_price: Number(i.unit_price) || 0,
       is_internal_cost: !!i.is_internal_cost,
+      category: i.category,
     })),
     {
       margin_percent: Number(values.margin_percent) || 0,
@@ -419,7 +420,12 @@ export function ProposalForm({
                     ? 0
                     : Number(item.hours);
                 const unit = Number(item?.unit_price) || 0;
-                const total = hrs > 0 ? qty * hrs * unit : qty * unit;
+                const total = itemTotal({
+                  quantity: qty,
+                  hours: hrs,
+                  unit_price: unit,
+                  category: item?.category,
+                });
                 const isCustomCategory =
                   item !== undefined &&
                   !(PRICING_CATEGORIES as readonly string[]).includes(
@@ -492,7 +498,21 @@ export function ProposalForm({
                       />
                     </td>
                     <td className="py-2 pr-2">
-                      <input type="number" min={0} step="any" className="input-base w-20 text-center" placeholder="—" {...register(`items.${index}.hours`)} />
+                      {SEM_HORAS.includes(item?.category ?? "") ? (
+                        <span className="block w-20 py-2 text-center text-ink-muted">
+                          —
+                        </span>
+                      ) : (
+                        <input
+                          type="number"
+                          min={0}
+                          step="any"
+                          className="input-base w-20 text-center"
+                          placeholder="—"
+                          title="Agente/Coordenador: até 9h = 1 diária; da 10ª à 13ª hora soma a hora proporcional (diária ÷ 9); 14h ou mais = 2 diárias"
+                          {...register(`items.${index}.hours`)}
+                        />
+                      )}
                     </td>
                     <td className="py-2 pr-2">
                       <input type="number" min={0} step="0.01" className="input-base w-28" {...register(`items.${index}.unit_price`)} />

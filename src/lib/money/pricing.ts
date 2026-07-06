@@ -8,7 +8,18 @@ export interface PricingItemInput {
   hours: number | null;
   unit_price: number;
   is_internal_cost: boolean;
+  category?: string;
 }
+
+/**
+ * Categorias em que o valor unitário é uma DIÁRIA de 9 horas.
+ * Regra da BB: até 9h = 1 diária; da 10ª à 13ª hora paga-se a hora
+ * proporcional (diária ÷ 9); a partir de 14h paga-se 2 diárias.
+ */
+const DIARIA_9H = ["Agente de limpeza", "Coordenador"];
+
+/** Categorias sem campo de horas (valor fixo por unidade) */
+export const SEM_HORAS = ["Vale-refeição", "Vale-transporte"];
 
 export interface PricingConfig {
   margin_percent: number;
@@ -35,10 +46,26 @@ export function itemTotal(item: {
   quantity: number;
   hours?: number | null;
   unit_price: number;
+  category?: string;
 }): number {
   const qty = Number(item.quantity) || 0;
   const hours = Number(item.hours) || 0;
   const unit = Number(item.unit_price) || 0;
+
+  // Agente/Coordenador: diária de 9h + hora extra até 13h; 14h+ = 2 diárias
+  if (item.category && DIARIA_9H.includes(item.category) && hours > 0) {
+    let porPessoa: number;
+    if (hours <= 9) porPessoa = unit;
+    else if (hours <= 13) porPessoa = unit + (hours - 9) * (unit / 9);
+    else porPessoa = unit * 2;
+    return round2(qty * porPessoa);
+  }
+
+  // VR/VT e afins: sempre qtd × valor (sem horas)
+  if (item.category && SEM_HORAS.includes(item.category)) {
+    return round2(qty * unit);
+  }
+
   const base = hours > 0 ? qty * hours * unit : qty * unit;
   return round2(base);
 }

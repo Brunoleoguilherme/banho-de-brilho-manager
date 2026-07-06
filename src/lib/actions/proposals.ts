@@ -131,6 +131,7 @@ function buildProposalRecord(data: ProposalInput) {
       hours: i.hours === "" || i.hours === undefined ? null : i.hours,
       unit_price: i.unit_price,
       is_internal_cost: i.is_internal_cost,
+      category: i.category,
     })),
     data
   );
@@ -212,6 +213,7 @@ async function saveChildren(
           quantity: i.quantity,
           hours: i.hours === "" || i.hours === undefined ? null : i.hours,
           unit_price: i.unit_price,
+          category: i.category,
         }),
         is_internal_cost: i.is_internal_cost,
         show_on_proposal: i.show_on_proposal,

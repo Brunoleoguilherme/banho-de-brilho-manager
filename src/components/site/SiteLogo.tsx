@@ -1,9 +1,26 @@
+"use client";
+
+import { useState } from "react";
+
 /**
- * Logo do site em SVG (folhas em quartos de círculo + wordmark).
- * Para usar o arquivo oficial, salve em /public/images/logo.png e
- * troque este componente por uma <img>.
+ * Logo oficial (arquivo em /public/images/logo-banho-de-brilho.png).
+ * Se o arquivo não existir, cai no desenho SVG equivalente.
  */
 export function SiteLogo({ className = "h-10" }: { className?: string }) {
+  const [fallback, setFallback] = useState(false);
+
+  if (!fallback) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src="/images/logo-banho-de-brilho.png"
+        alt="Banho de Brilho"
+        className={`${className} w-auto`}
+        onError={() => setFallback(true)}
+      />
+    );
+  }
+
   return (
     <svg
       viewBox="0 0 250 84"

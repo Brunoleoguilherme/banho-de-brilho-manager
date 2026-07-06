@@ -1,12 +1,28 @@
-import { View, Text, Svg, Path } from "@react-pdf/renderer";
+import fs from "node:fs";
+import path from "node:path";
+import { View, Text, Svg, Path, Image } from "@react-pdf/renderer";
 
 const PETROL = "#0F2742";
 const MUTED = "#64748B";
 const AZUL = "#69A9CF";
 const VERDE = "#A8CF00";
 
+// Logo oficial (PNG). Se o arquivo não existir, cai no desenho vetorial.
+let LOGO: string | null = null;
+try {
+  const p = path.join(
+    process.cwd(),
+    "public",
+    "images",
+    "logo-banho-de-brilho.png"
+  );
+  LOGO = `data:image/png;base64,${fs.readFileSync(p).toString("base64")}`;
+} catch {
+  LOGO = null;
+}
+
 /**
- * Cabeçalho padrão dos PDFs: logo (folhas) + BANHO DE BRILHO + subtítulo,
+ * Cabeçalho padrão dos PDFs: logo oficial + subtítulo,
  * com espaçamento correto entre as linhas.
  */
 export function BrandHeader({
@@ -16,6 +32,25 @@ export function BrandHeader({
   size?: number;
   subtitle?: string;
 }) {
+  if (LOGO) {
+    const h = size * 2.6;
+    return (
+      <View style={{ marginBottom: 10 }}>
+        {/* proporção aproximada da logo oficial (~1,92:1) */}
+        <Image src={LOGO} style={{ height: h, width: h * 1.92 }} />
+        <Text
+          style={{
+            fontSize: Math.max(6.5, size * 0.5),
+            color: MUTED,
+            marginTop: 4,
+          }}
+        >
+          {subtitle}
+        </Text>
+      </View>
+    );
+  }
+
   const logoH = size * 2.4;
   const logoW = (logoH * 62) / 84;
   return (

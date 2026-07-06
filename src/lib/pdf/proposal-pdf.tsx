@@ -240,12 +240,12 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
           </Text>
           {horarioUnico !== null ? (
             <Text>
-              <Text style={styles.label}>Horário do evento: </Text>
+              <Text style={styles.label}>Horário da realização: </Text>
               {horarioUnico}
             </Text>
           ) : (
             <>
-              <Text style={styles.label}>Horário do evento:</Text>
+              <Text style={styles.label}>Horário da realização:</Text>
               {realDays.map((s, i) => (
                 <Text key={i}>
                   {"   "}
@@ -340,7 +340,7 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
         <View style={{ marginTop: 10 }}>
           <Text>Atenciosamente,</Text>
           <Text style={[styles.label, { marginTop: 16 }]}>
-            Iracema Martins e Claudio Guilherme
+            Iracema Martins e Cláudio Guilherme
           </Text>
           <Text style={{ color: MUTED, fontSize: 9 }}>{COMPANY.name}</Text>
         </View>

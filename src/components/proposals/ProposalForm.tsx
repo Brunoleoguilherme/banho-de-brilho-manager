@@ -181,6 +181,22 @@ export function ProposalForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchedEventId]);
 
+  // Ao trocar Nota Fiscal ↔ Recibo, ajusta o texto padrão da forma de pagamento
+  const watchedEmission = watch("emission_type");
+  useEffect(() => {
+    const current = (watch("payment_terms") ?? "").trim();
+    const padrao = /^contra entrega de (nota fiscal|recibo)$/i;
+    if (current === "" || padrao.test(current)) {
+      setValue(
+        "payment_terms",
+        watchedEmission === "recibo"
+          ? "Contra entrega de Recibo"
+          : "Contra entrega de Nota Fiscal"
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedEmission]);
+
   const values = watch();
   const pricing = calculatePricing(
     (values.items ?? []).map((i) => ({

@@ -10,6 +10,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { createClient } from "@/lib/supabase/server";
 import { COMPANY } from "@/lib/constants";
+import { BrandHeader } from "./BrandHeader";
 
 // Identidade visual da marca (azul-escuro + verde-limão)
 const PETROL = "#0F2742";
@@ -269,8 +270,7 @@ export async function getOsPdfData(id: string): Promise<OsPdfData | null> {
 function Header({ title }: { title: string }) {
   return (
     <>
-      <Text style={styles.brand}>BANHO DE BRILHO</Text>
-      <Text style={styles.brandSub}>LIMPEZAS ESPECIAIS LTDA.</Text>
+      <BrandHeader size={15} />
       <View style={styles.goldLine} />
       <Text style={[styles.title, { marginBottom: 10 }]}>{title}</Text>
     </>

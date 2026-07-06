@@ -8,6 +8,7 @@ import {
 } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import type { FolhaData } from "@/lib/folha";
+import { BrandHeader } from "./BrandHeader";
 
 // Identidade visual da marca (azul-escuro + verde-limão)
 const PETROL = "#0F2742";
@@ -75,10 +76,10 @@ function FolhaDocument({ data }: { data: FolhaData }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.brand}>BANHO DE BRILHO</Text>
-        <Text style={styles.brandSub}>
-          Limpezas Especiais Ltda. — CNPJ 03.232.988/0001-02 — Belo Horizonte/MG
-        </Text>
+        <BrandHeader
+          size={13}
+          subtitle="Limpezas Especiais Ltda. — CNPJ 03.232.988/0001-02 — Belo Horizonte/MG"
+        />
         <View style={styles.goldLine} />
 
         <Text style={styles.titleBar}>

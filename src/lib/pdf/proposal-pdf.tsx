@@ -9,6 +9,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { COMPANY } from "@/lib/constants";
+import { BrandHeader } from "./BrandHeader";
 import { eventFullLocation, type ProposalPdfData } from "./proposal-data";
 
 // Identidade visual da marca (azul-escuro + verde-limão)
@@ -208,8 +209,7 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
   return (
     <Document title={`Proposta ${data.code}`} author={COMPANY.name}>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.brand}>BANHO DE BRILHO</Text>
-        <Text style={styles.brandSub}>LIMPEZAS ESPECIAIS LTDA.</Text>
+        <BrandHeader size={16} />
         <View style={styles.goldLine} />
 
         <View style={styles.headerRow}>

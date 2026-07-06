@@ -96,8 +96,19 @@ export function calculatePricing(
 
   // Imposto "por dentro": valor final = líquido / (1 - imposto)
   const totalNf = taxNf < 1 ? round2(netPrice / (1 - taxNf)) : netPrice;
-  const totalReceipt =
-    taxReceipt < 1 ? round2(netPrice / (1 - taxReceipt)) : netPrice;
+
+  // Recibo: se houver % de imposto de recibo, usa "por dentro" como na NF.
+  // Senão, regra padrão da BB: Recibo = NF ÷ 1,1 (aplicando 10% sobre o
+  // valor com recibo, volta-se ao valor com nota — ex.: 100 ÷ 1,1 = 90,91).
+  let totalReceipt: number;
+  let taxesReceipt: number;
+  if (taxReceipt > 0 && taxReceipt < 1) {
+    totalReceipt = round2(netPrice / (1 - taxReceipt));
+    taxesReceipt = round2(totalReceipt - netPrice);
+  } else {
+    totalReceipt = round2(totalNf / 1.1);
+    taxesReceipt = 0;
+  }
 
   return {
     subtotal,
@@ -107,7 +118,7 @@ export function calculatePricing(
     discountAmount,
     netPrice,
     taxesNf: round2(totalNf - netPrice),
-    taxesReceipt: round2(totalReceipt - netPrice),
+    taxesReceipt,
     totalNf,
     totalReceipt,
   };

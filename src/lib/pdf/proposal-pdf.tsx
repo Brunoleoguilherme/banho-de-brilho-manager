@@ -136,10 +136,18 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
     data.schedule.some((s) => s.phase === phase)
   );
 
-  // Dias reais de realização (do cronograma) — respeita dias avulsos
-  const realDays = data.schedule
-    .filter((s) => s.phase === "realizacao" && s.service_date)
-    .sort((a, b) => (a.service_date > b.service_date ? 1 : -1));
+  // Dias reais de realização (do cronograma) — respeita dias avulsos.
+  // Se não houver linhas de "realização", usa todos os dias do cronograma.
+  const realizacaoRows = data.schedule.filter(
+    (s) => s.phase === "realizacao" && s.service_date
+  );
+  const baseRows =
+    realizacaoRows.length > 0
+      ? realizacaoRows
+      : data.schedule.filter((s) => s.service_date);
+  const realDays = [...baseRows].sort((a, b) =>
+    a.service_date > b.service_date ? 1 : -1
+  );
   const uniqDates = Array.from(new Set(realDays.map((s) => s.service_date)));
 
   const consecutivos =

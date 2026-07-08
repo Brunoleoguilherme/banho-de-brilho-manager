@@ -13,8 +13,13 @@ export default async function EditEventPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: event }, { data: clients }, { data: schedules }, { data: respItems }] =
-    await Promise.all([
+  const [
+    { data: event },
+    { data: clients },
+    { data: schedules },
+    { data: respItems },
+    { data: locations },
+  ] = await Promise.all([
       supabase.from("events").select("*").eq("id", id).single(),
       supabase.from("clients").select("id, name").order("name"),
       supabase
@@ -23,6 +28,7 @@ export default async function EditEventPage({
         .eq("event_id", id)
         .order("service_date"),
       supabase.from("responsibility_items").select("label").order("created_at"),
+      supabase.from("event_locations").select("id, name, address, address_number, address_complement, neighborhood, city, state, zip_code").order("name"),
     ]);
 
   if (!event) notFound();
@@ -42,6 +48,7 @@ export default async function EditEventPage({
         event={event}
         schedules={schedules ?? []}
         clients={clients ?? []}
+        locations={locations ?? []}
         responsibilityItems={(respItems ?? []).map((i) => i.label)}
       />
     </div>

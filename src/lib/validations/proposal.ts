@@ -3,10 +3,11 @@ import { z } from "zod";
 const optionalText = z.string().optional();
 const money = z.coerce.number().min(0, "Valor inválido");
 const percent = z.coerce.number().min(0, "Mínimo 0").max(100, "Máximo 100");
-// Margem pode passar de 100% (ex.: markup de 150%)
+// Margem pode passar de 100% (ex.: markup de 150%) e ficar negativa
+// (contraproposta abaixo do custo, usada só para análise)
 const marginPercent = z.coerce
   .number()
-  .min(0, "Mínimo 0")
+  .min(-100, "Mínimo -100")
   .max(1000, "Máximo 1000");
 
 export const scheduleItemSchema = z.object({

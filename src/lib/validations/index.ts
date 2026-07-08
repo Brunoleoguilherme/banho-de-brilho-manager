@@ -36,6 +36,8 @@ export const contactSchema = z.object({
 
 export const eventSchema = z.object({
   client_id: z.string().uuid("Selecione o cliente"),
+  // Local salvo (opcional) — preenche o endereço automaticamente
+  location_id: optionalText,
   name: z.string().min(2, "Informe o nome do evento"),
   location_name: optionalText,
   address: optionalText,
@@ -77,6 +79,44 @@ export const eventSchema = z.object({
   responsibilities_client: optionalText,
   notes: optionalText,
 });
+
+const optionalInt = z
+  .union([z.literal(""), z.coerce.number().int().min(0, "Valor inválido")])
+  .optional();
+
+/** Local de evento reaproveitável (endereço, contato, banheiros e descartáveis) */
+export const locationSchema = z.object({
+  name: z.string().min(2, "Informe o nome do local"),
+  address: optionalText,
+  address_number: optionalText,
+  address_complement: optionalText,
+  neighborhood: optionalText,
+  city: optionalText,
+  state: optionalText,
+  zip_code: optionalText,
+  contact_name: optionalText,
+  contact_phone: optionalText,
+  contact_email: optionalEmail,
+  soap_type: optionalText,
+  paper_towel_type: optionalText,
+  toilet_paper_type: optionalText,
+  trash_bag: optionalText,
+  fem_cb: optionalInt,
+  fem_ph: optionalInt,
+  fem_pt: optionalInt,
+  fem_sb: optionalInt,
+  masc_cb: optionalInt,
+  masc_ph: optionalInt,
+  masc_pt: optionalInt,
+  masc_sb: optionalInt,
+  pne_cb: optionalInt,
+  pne_ph: optionalInt,
+  pne_pt: optionalInt,
+  pne_sb: optionalInt,
+  notes: optionalText,
+});
+
+export type LocationInput = z.infer<typeof locationSchema>;
 
 export type ClientInput = z.infer<typeof clientSchema>;
 export type ContactInput = z.infer<typeof contactSchema>;

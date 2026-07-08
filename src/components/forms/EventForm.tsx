@@ -46,10 +46,23 @@ function dayLabel(iso: string): string {
   return `${WEEKDAY_SHORT[d.getDay()]} ${iso.split("-").reverse().slice(0, 2).join("/")}`;
 }
 
+interface LocationOption {
+  id: string;
+  name: string;
+  address: string | null;
+  address_number: string | null;
+  address_complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
+}
+
 interface EventFormProps {
   event?: Event;
   schedules?: EventScheduleDefault[];
   clients: { id: string; name: string }[];
+  locations?: LocationOption[];
   defaultClientId?: string;
   responsibilityItems?: string[];
 }
@@ -151,6 +164,7 @@ export function EventForm({
   event,
   schedules,
   clients,
+  locations = [],
   defaultClientId,
   responsibilityItems = [],
 }: EventFormProps) {
@@ -198,6 +212,8 @@ export function EventForm({
     defaultValues: event
       ? {
           client_id: event.client_id,
+          location_id:
+            (event as { location_id?: string | null }).location_id ?? "",
           name: event.name,
           location_name: event.location_name ?? "",
           address: event.address ?? "",
@@ -265,6 +281,21 @@ export function EventForm({
 
   const typeLabel = (value: string) =>
     SERVICE_TYPES.find((t) => t.value === value)?.label ?? value;
+
+  // Preenche o endereco a partir de um local salvo
+  function applyLocation(id: string) {
+    setValue("location_id", id);
+    const loc = locations.find((l) => l.id === id);
+    if (!loc) return;
+    setValue("location_name", loc.name, { shouldDirty: true });
+    setValue("address", loc.address ?? "");
+    setValue("address_number", loc.address_number ?? "");
+    setValue("address_complement", loc.address_complement ?? "");
+    setValue("neighborhood", loc.neighborhood ?? "");
+    setValue("city", loc.city ?? "");
+    setValue("state", loc.state ?? "");
+    setValue("zip_code", loc.zip_code ?? "");
+  }
 
   function toggleServiceType(value: string) {
     const next = selectedTypes.includes(value)
@@ -364,6 +395,34 @@ export function EventForm({
       </FormSection>
 
       <FormSection title="Local">
+        <input type="hidden" {...register("location_id")} />
+        <Field label="Local salvo (opcional)" className="md:col-span-2">
+          <div className="flex items-center gap-2">
+            <select
+              className="input-base"
+              value={watch("location_id") ?? ""}
+              onChange={(e) => applyLocation(e.target.value)}
+            >
+              <option value="">— Preencher manualmente —</option>
+              {locations.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+            <a
+              href="/locais/novo"
+              target="_blank"
+              className="shrink-0 text-xs font-medium text-brand-petrol hover:underline"
+            >
+              + Cadastrar local
+            </a>
+          </div>
+          <p className="mt-1 text-xs text-ink-muted">
+            Escolha um local ja cadastrado para preencher o endereco
+            automaticamente.
+          </p>
+        </Field>
         <Field label="Nome do local" className="md:col-span-2" error={errors.location_name?.message}>
           <input
             className="input-base"

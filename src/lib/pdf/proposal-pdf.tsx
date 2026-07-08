@@ -221,8 +221,12 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
           <Text style={styles.label}>A</Text>
           <Text style={styles.label}>{data.client?.name?.toUpperCase()}</Text>
           {data.contact_name ? <Text>A/c: {data.contact_name}</Text> : null}
-          {data.contact_email ? <Text>E-mail: {data.contact_email}</Text> : null}
-          {data.contact_phone ? <Text>Fone: {data.contact_phone}</Text> : null}
+          {data.contact_email || data.client?.email ? (
+            <Text>E-mail: {data.contact_email || data.client?.email}</Text>
+          ) : null}
+          {data.contact_phone || data.client?.phone ? (
+            <Text>Fone: {data.contact_phone || data.client?.phone}</Text>
+          ) : null}
         </View>
 
         <View style={styles.section}>

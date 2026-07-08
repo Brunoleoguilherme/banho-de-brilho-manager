@@ -14,7 +14,7 @@ export default async function NewProposalPage({
     await Promise.all([
       supabase
         .from("events")
-        .select("id, name, start_date, estimated_public, clients(name)")
+        .select("id, name, start_date, estimated_public, clients(name, email, phone)")
         .order("start_date", { ascending: false, nullsFirst: false }),
       supabase
         .from("event_schedules")
@@ -40,6 +40,10 @@ export default async function NewProposalPage({
     start_date: e.start_date,
     estimated_public: e.estimated_public,
     client_name: (e.clients as unknown as { name: string } | null)?.name ?? "",
+    client_email:
+      (e.clients as unknown as { email: string | null } | null)?.email ?? "",
+    client_phone:
+      (e.clients as unknown as { phone: string | null } | null)?.phone ?? "",
     schedules: (eventSchedules ?? []).filter((s) => s.event_id === e.id),
   }));
 

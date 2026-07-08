@@ -14,7 +14,12 @@ import {
   createProposalAction,
   updateProposalAction,
 } from "@/lib/actions/proposals";
-import { calculatePricing, itemTotal, SEM_HORAS } from "@/lib/money/pricing";
+import {
+  calculatePricing,
+  itemTotal,
+  SEM_HORAS,
+  solveMarginForTarget,
+} from "@/lib/money/pricing";
 import { valorPorExtenso } from "@/lib/money/extenso";
 import { formatMoney } from "@/lib/utils";
 import { FormSection } from "@/components/ui/FormSection";
@@ -48,6 +53,8 @@ interface ProposalFormProps {
     id: string;
     name: string;
     client_name: string;
+    client_email?: string;
+    client_phone?: string;
     start_date: string | null;
     estimated_public?: number | null;
     schedules?: EventScheduleOption[];
@@ -69,6 +76,8 @@ export function ProposalForm({
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [targetValue, setTargetValue] = useState("");
+  const [margemInfo, setMargemInfo] = useState<string | null>(null);
 
   const {
     register,
@@ -155,8 +164,17 @@ export function ProposalForm({
     if (!watchedEventId || watchedEventId === lastEventId) return;
     setLastEventId(watchedEventId);
 
-    const eventSchedules =
-      events.find((e) => e.id === watchedEventId)?.schedules ?? [];
+    const ev = events.find((e) => e.id === watchedEventId);
+    // Auto-preenche e-mail/telefone do contato a partir do cadastro do cliente
+    // (apenas quando o campo ainda estiver vazio, para nao sobrescrever edicoes)
+    if (ev?.client_email && !watch("contact_email")) {
+      setValue("contact_email", ev.client_email);
+    }
+    if (ev?.client_phone && !watch("contact_phone")) {
+      setValue("contact_phone", ev.client_phone);
+    }
+
+    const eventSchedules = ev?.schedules ?? [];
     if (eventSchedules.length === 0) return;
 
     const rows = [...eventSchedules]
@@ -245,6 +263,44 @@ export function ProposalForm({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalAgents, totalCoordinators, itemCategories]);
+
+  // Modo inverso: informa o valor final e o sistema acha a margem
+  function aplicarMargemPeloValor() {
+    const alvo = Number(targetValue) || 0;
+    const itens = (values.items ?? []).map((i) => ({
+      quantity: Number(i.quantity) || 0,
+      hours: i.hours === "" || i.hours === undefined ? null : Number(i.hours),
+      unit_price: Number(i.unit_price) || 0,
+      is_internal_cost: !!i.is_internal_cost,
+      category: i.category,
+    }));
+    const m = solveMarginForTarget(
+      alvo,
+      itens,
+      {
+        bv_percent: Number(values.bv_percent) || 0,
+        discount_percent: Number(values.discount_percent) || 0,
+        tax_percent_nf: Number(values.tax_percent_nf) || 0,
+        tax_percent_receipt: Number(values.tax_percent_receipt) || 0,
+      },
+      values.emission_type === "recibo" ? "recibo" : "nota_fiscal"
+    );
+    if (m === null) {
+      setMargemInfo("Preencha os itens e um valor final maior que zero.");
+      return;
+    }
+    const aplicada = Math.max(-100, Math.min(1000, m));
+    setValue("margin_percent", aplicada);
+    const fmt = m.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    });
+    setMargemInfo(
+      m < 0
+        ? `Margem calculada: ${fmt}% — atencao: abaixo do custo.`
+        : `Margem aplicada: ${fmt}%.`
+    );
+  }
 
   async function onSubmit(data: ProposalInput) {
     setLoading(true);
@@ -573,7 +629,7 @@ export function ProposalForm({
 
         <div className="mt-5 grid grid-cols-2 gap-4 border-t border-gray-100 pt-5 md:grid-cols-5">
           <Field label="Margem (%)" error={errors.margin_percent?.message}>
-            <input type="number" min={0} max={1000} step="0.01" className="input-base" {...register("margin_percent")} />
+            <input type="number" min={-100} max={1000} step="0.0001" className="input-base" {...register("margin_percent")} />
           </Field>
           <Field label="BV (%)" error={errors.bv_percent?.message}>
             <input type="number" min={0} max={100} step="0.01" className="input-base" {...register("bv_percent")} />
@@ -587,6 +643,44 @@ export function ProposalForm({
           <Field label="Imposto Recibo (%)" error={errors.tax_percent_receipt?.message}>
             <input type="number" min={0} max={100} step="0.01" className="input-base" {...register("tax_percent_receipt")} />
           </Field>
+        </div>
+
+        <div className="mt-4 rounded-lg border border-dashed border-brand-teal/40 bg-teal-50/30 p-4">
+          <p className="mb-2 text-sm font-semibold text-brand-petrol">
+            Achar a margem pelo valor final
+          </p>
+          <p className="mb-3 text-xs text-ink-muted">
+            Para analisar contrapropostas: informe o valor final desejado (na
+            emissao{" "}
+            {values.emission_type === "recibo" ? "Recibo" : "Nota Fiscal"}) e o
+            sistema calcula a margem, mantendo BV, desconto e impostos.
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ink-muted">
+                Valor final desejado (R$)
+              </label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                className="input-base w-40"
+                value={targetValue}
+                onChange={(e) => setTargetValue(e.target.value)}
+                placeholder="Ex.: 286.20"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={aplicarMargemPeloValor}
+              className="rounded-lg bg-brand-petrol px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
+            >
+              Calcular margem
+            </button>
+            {margemInfo && (
+              <span className="text-xs font-medium text-ink">{margemInfo}</span>
+            )}
+          </div>
         </div>
 
         <div className="mt-4 rounded-xl bg-brand-dark p-5 text-white">

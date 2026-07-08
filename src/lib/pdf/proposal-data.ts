@@ -16,6 +16,8 @@ export interface ProposalPdfData {
   responsibilities_client: string | null;
   client: {
     name: string;
+    email: string | null;
+    phone: string | null;
     legal_name: string | null;
     document: string | null;
     address: string | null;
@@ -76,7 +78,7 @@ export async function getProposalPdfData(
     supabase
       .from("proposals")
       .select(
-        "*, clients(name, legal_name, document, address, address_number, address_complement, neighborhood, city, state, zip_code), events(name, location_name, address, address_number, address_complement, neighborhood, zip_code, city, state, start_date, end_date, event_start_time, event_end_time, estimated_public)"
+        "*, clients(name, email, phone, legal_name, document, address, address_number, address_complement, neighborhood, city, state, zip_code), events(name, location_name, address, address_number, address_complement, neighborhood, zip_code, city, state, start_date, end_date, event_start_time, event_end_time, estimated_public)"
       )
       .eq("id", id)
       .single(),

@@ -124,6 +124,44 @@ export function calculatePricing(
   };
 }
 
+/**
+ * Cálculo INVERSO: dado o VALOR FINAL desejado (na emissão escolhida),
+ * retorna a MARGEM (%) necessária, mantendo BV, desconto e impostos fixos.
+ * Útil para analisar contrapropostas (recebo o valor X, quero saber a margem).
+ * Retorna null quando não dá para calcular (sem itens / valor <= 0).
+ */
+export function solveMarginForTarget(
+  target: number,
+  items: PricingItemInput[],
+  config: Omit<PricingConfig, "margin_percent">,
+  emissionType: "nota_fiscal" | "recibo"
+): number | null {
+  const subtotal = round2(items.reduce((acc, i) => acc + itemTotal(i), 0));
+  if (!(subtotal > 0) || !(target > 0)) return null;
+
+  const bv = pct(config.bv_percent);
+  const discount = pct(config.discount_percent);
+  const taxNf = pct(config.tax_percent_nf);
+  const taxReceipt = pct(config.tax_percent_receipt);
+
+  // Desfaz o imposto "por dentro" para chegar ao valor líquido
+  let netPrice: number;
+  if (emissionType === "recibo") {
+    if (taxReceipt > 0 && taxReceipt < 1) netPrice = target * (1 - taxReceipt);
+    else netPrice = target * 1.1 * (1 - taxNf); // Recibo padrão = NF ÷ 1,1
+  } else {
+    netPrice = taxNf < 1 ? target * (1 - taxNf) : target;
+  }
+
+  // netPrice = subtotal · (1 + margem) · (1 + bv) · (1 - desconto)
+  const factor = subtotal * (1 + bv) * (1 - discount);
+  if (!(factor > 0)) return null;
+
+  const marginPercent = (netPrice / factor - 1) * 100;
+  // 4 casas decimais
+  return Math.round(marginPercent * 10000) / 10000;
+}
+
 function pct(value: number): number {
   const n = Number(value) || 0;
   return n / 100;

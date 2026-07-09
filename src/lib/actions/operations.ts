@@ -346,9 +346,11 @@ export async function updateAllocationStatusAction(
 export async function addOsVehicleAction(input: {
   operation_order_id: string;
   model: string;
+  color?: string;
   plate?: string;
   driver_name?: string;
   driver_document?: string;
+  vehicle_id?: string;
 }): Promise<ActionResult> {
   if (!input.model?.trim())
     return { ok: false, error: "Informe o veículo (modelo)." };
@@ -357,9 +359,11 @@ export async function addOsVehicleAction(input: {
   const { error } = await supabase.from("os_vehicles").insert({
     operation_order_id: input.operation_order_id,
     model: input.model.trim(),
+    color: input.color?.trim() || null,
     plate: input.plate?.trim().toUpperCase() || null,
     driver_name: input.driver_name?.trim() || null,
     driver_document: input.driver_document?.trim() || null,
+    vehicle_id: input.vehicle_id || null,
   });
   if (error) return { ok: false, error: "Erro ao salvar veículo. " + error.message };
 
@@ -380,9 +384,11 @@ export async function updateOsVehicleAction(
   osId: string,
   input: {
     model: string;
+    color?: string;
     plate?: string;
     driver_name?: string;
     driver_document?: string;
+    vehicle_id?: string;
   }
 ): Promise<ActionResult> {
   if (!input.model?.trim())
@@ -393,9 +399,11 @@ export async function updateOsVehicleAction(
     .from("os_vehicles")
     .update({
       model: input.model.trim(),
+      color: input.color?.trim() || null,
       plate: input.plate?.trim().toUpperCase() || null,
       driver_name: input.driver_name?.trim() || null,
       driver_document: input.driver_document?.trim() || null,
+      vehicle_id: input.vehicle_id || null,
     })
     .eq("id", vehicleId);
   if (error) return { ok: false, error: "Erro ao atualizar veículo." };

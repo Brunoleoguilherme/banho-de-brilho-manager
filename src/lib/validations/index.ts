@@ -118,6 +118,17 @@ export const locationSchema = z.object({
 
 export type LocationInput = z.infer<typeof locationSchema>;
 
+/** Veiculo do pre-cadastro (frota) para escolher na OS */
+export const vehicleSchema = z.object({
+  model: z.string().min(2, "Informe o modelo/descrição do veículo"),
+  color: optionalText,
+  plate: optionalText,
+  notes: optionalText,
+  active: z.boolean().default(true),
+});
+
+export type VehicleInput = z.infer<typeof vehicleSchema>;
+
 export type ClientInput = z.infer<typeof clientSchema>;
 export type ContactInput = z.infer<typeof contactSchema>;
 export type EventInput = z.infer<typeof eventSchema>;

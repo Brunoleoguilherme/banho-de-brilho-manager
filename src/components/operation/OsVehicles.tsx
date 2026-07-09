@@ -12,23 +12,42 @@ import {
 export interface OsVehicle {
   id: string;
   model: string;
+  color: string | null;
   plate: string | null;
   driver_name: string | null;
   driver_document: string | null;
 }
 
+/** Veículo do pré-cadastro (frota) para escolher rapidamente */
+export interface VehiclePick {
+  id: string;
+  model: string;
+  color: string | null;
+  plate: string | null;
+}
+
+const emptyForm = {
+  model: "",
+  color: "",
+  plate: "",
+  driver_name: "",
+  driver_document: "",
+  vehicle_id: "",
+};
+
 export function OsVehicles({
   osId,
   vehicles,
+  registry = [],
 }: {
   osId: string;
   vehicles: OsVehicle[];
+  registry?: VehiclePick[];
 }) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const emptyForm = { model: "", plate: "", driver_name: "", driver_document: "" };
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -36,12 +55,29 @@ export function OsVehicles({
     setEditingId(v.id);
     setForm({
       model: v.model,
+      color: v.color ?? "",
       plate: v.plate ?? "",
       driver_name: v.driver_name ?? "",
       driver_document: v.driver_document ?? "",
+      vehicle_id: "",
     });
     setShowForm(true);
     setError(null);
+  }
+
+  function pickRegistry(id: string) {
+    const veh = registry.find((r) => r.id === id);
+    if (!veh) {
+      setForm({ ...form, vehicle_id: "" });
+      return;
+    }
+    setForm({
+      ...form,
+      vehicle_id: veh.id,
+      model: veh.model,
+      color: veh.color ?? "",
+      plate: veh.plate ?? "",
+    });
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -79,7 +115,11 @@ export function OsVehicles({
           </span>
         </div>
         <button
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => {
+            setForm(emptyForm);
+            setEditingId(null);
+            setShowForm((v) => !v);
+          }}
           className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-petrol hover:bg-brand-petrol/5"
         >
           <Plus className="h-3.5 w-3.5" />
@@ -91,8 +131,8 @@ export function OsVehicles({
 
       {vehicles.length === 0 && !showForm && (
         <p className="text-sm text-ink-muted">
-          Nenhum veículo cadastrado. Eles entram na Lista de Colaboradores e
-          Veículos (para a portaria).
+          Nenhum veículo nesta OS. Eles entram na Relação de Veículos (para o
+          produtor do evento).
         </p>
       )}
 
@@ -105,6 +145,11 @@ export function OsVehicles({
             <div className="text-sm">
               <p className="font-medium text-ink">
                 {v.model}
+                {v.color && (
+                  <span className="ml-2 text-xs font-normal text-ink-muted">
+                    {v.color}
+                  </span>
+                )}
                 {v.plate && (
                   <span className="ml-2 rounded bg-surface px-1.5 py-0.5 text-xs font-semibold text-brand-petrol">
                     {v.plate}
@@ -140,40 +185,71 @@ export function OsVehicles({
 
       {showForm && (
         <form onSubmit={handleAdd} className="mt-3 space-y-2 rounded-lg bg-surface p-3">
+          {!editingId && registry.length > 0 && (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ink-muted">
+                Escolher veículo cadastrado
+              </label>
+              <select
+                className="input-base"
+                value={form.vehicle_id}
+                onChange={(e) => pickRegistry(e.target.value)}
+              >
+                <option value="">— Digitar manualmente —</option>
+                {registry.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.model}
+                    {r.color ? ` · ${r.color}` : ""}
+                    {r.plate ? ` · ${r.plate}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <input
             required
             className="input-base"
-            placeholder="Veículo (ex.: Fiat Doblò branca) *"
+            placeholder="Modelo / descrição (ex.: Fiat Doblô Adventure) *"
             value={form.model}
             onChange={(e) => setForm({ ...form, model: e.target.value })}
           />
           <div className="flex gap-2">
             <input
               className="input-base"
-              placeholder="Placa (ex.: ABC-1D23)"
-              value={form.plate}
-              onChange={(e) => setForm({ ...form, plate: e.target.value })}
+              placeholder="Cor (ex.: Vermelho)"
+              value={form.color}
+              onChange={(e) => setForm({ ...form, color: e.target.value })}
             />
             <input
               className="input-base"
-              placeholder="Motorista"
+              placeholder="Placa (ex.: PWO-9E43)"
+              value={form.plate}
+              onChange={(e) => setForm({ ...form, plate: e.target.value })}
+            />
+          </div>
+          <div className="flex gap-2">
+            <input
+              className="input-base"
+              placeholder="Motorista (opcional)"
               value={form.driver_name}
               onChange={(e) => setForm({ ...form, driver_name: e.target.value })}
             />
+            <input
+              className="input-base"
+              placeholder="Doc. do motorista (opcional)"
+              value={form.driver_document}
+              onChange={(e) =>
+                setForm({ ...form, driver_document: e.target.value })
+              }
+            />
           </div>
-          <input
-            className="input-base"
-            placeholder="Documento do motorista (CPF ou RG)"
-            value={form.driver_document}
-            onChange={(e) => setForm({ ...form, driver_document: e.target.value })}
-          />
           <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={() => {
                 setShowForm(false);
                 setEditingId(null);
-                setForm({ model: "", plate: "", driver_name: "" });
+                setForm(emptyForm);
               }}
               className="rounded-lg px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-gray-100"
             >

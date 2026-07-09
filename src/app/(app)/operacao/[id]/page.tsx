@@ -7,7 +7,11 @@ import { OperationStatusSelect } from "@/components/operation/OperationStatusSel
 import { ChecklistCard } from "@/components/operation/ChecklistCard";
 import { OperationInfoForm } from "@/components/operation/OperationInfoForm";
 import { BulkAllocationValues } from "@/components/operation/BulkAllocationValues";
-import { OsVehicles, type OsVehicle } from "@/components/operation/OsVehicles";
+import {
+  OsVehicles,
+  type OsVehicle,
+  type VehiclePick,
+} from "@/components/operation/OsVehicles";
 import {
   ShiftAllocations,
   type AllocationRow,
@@ -38,6 +42,7 @@ export default async function OperationDetailPage({
     { data: profiles },
     { data: logs },
     { data: vehicles },
+    { data: vehicleRegistry },
   ] = await Promise.all([
     supabase
       .from("operation_orders")
@@ -79,9 +84,14 @@ export default async function OperationDetailPage({
       .limit(12),
     supabase
       .from("os_vehicles")
-      .select("id, model, plate, driver_name, driver_document")
+      .select("id, model, color, plate, driver_name, driver_document")
       .eq("operation_order_id", id)
       .order("created_at"),
+    supabase
+      .from("vehicles")
+      .select("id, model, color, plate")
+      .eq("active", true)
+      .order("model"),
   ]);
 
   if (!os) notFound();
@@ -160,10 +170,10 @@ export default async function OperationDetailPage({
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-gray-50"
-          title="Colaboradores confirmados (nome, CPF e RG) por turno + veículos — para credenciamento"
+          title="Relação de funcionários (nome, RG e CPF) por turno + veículos (modelo, cor, placa) — para enviar ao produtor do evento"
         >
           <ClipboardList className="h-4 w-4" />
-          Lista de colaboradores e veículos
+          Relação de funcionários e veículos
         </a>
         <OperationStatusSelect osId={os.id} status={os.status} />
       </PageHeader>
@@ -309,7 +319,11 @@ export default async function OperationDetailPage({
         <div className="space-y-6">
           <ChecklistCard osId={os.id} items={checklist ?? []} />
 
-          <OsVehicles osId={os.id} vehicles={(vehicles ?? []) as OsVehicle[]} />
+          <OsVehicles
+            osId={os.id}
+            vehicles={(vehicles ?? []) as OsVehicle[]}
+            registry={(vehicleRegistry ?? []) as VehiclePick[]}
+          />
 
           <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-card">
             <h2 className="mb-4 text-base font-semibold text-ink">Histórico</h2>

@@ -14,7 +14,7 @@ try {
     process.cwd(),
     "public",
     "images",
-    "logo-banho-de-brilho.png"
+    "logo-banho-de-brilho-header.png"
   );
   LOGO = `data:image/png;base64,${fs.readFileSync(p).toString("base64")}`;
 } catch {
@@ -33,11 +33,12 @@ export function BrandHeader({
   subtitle?: string;
 }) {
   if (LOGO) {
-    const h = size * 2.6;
+    const w = size * 9;
+    const h = w / 2.73;
     return (
       <View style={{ marginBottom: 10 }}>
-        {/* proporção aproximada da logo oficial (~1,92:1) */}
-        <Image src={LOGO} style={{ height: h, width: h * 1.92 }} />
+        {/* proporção real da logo recortada (~2,73:1), sem distorcer */}
+        <Image src={LOGO} style={{ width: w, height: h }} />
         <Text
           style={{
             fontSize: Math.max(6.5, size * 0.5),

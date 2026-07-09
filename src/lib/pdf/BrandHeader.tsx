@@ -42,7 +42,7 @@ export function BrandHeader({
         <Text
           style={{
             fontSize: Math.max(6.5, size * 0.5),
-            color: MUTED,
+            color: PETROL,
             marginTop: 4,
           }}
         >
@@ -83,7 +83,7 @@ export function BrandHeader({
         <Text
           style={{
             fontSize: Math.max(6.5, size * 0.5),
-            color: MUTED,
+            color: PETROL,
             marginTop: 3,
           }}
         >

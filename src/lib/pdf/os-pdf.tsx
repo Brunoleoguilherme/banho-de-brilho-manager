@@ -68,59 +68,9 @@ const styles = StyleSheet.create({
     borderTopColor: PETROL,
     paddingTop: 6,
     fontSize: 7.5,
-    color: PETROL,
+    color: MUTED,
     textAlign: "center",
   },
-});
-
-// Estilo "planilha" (Relacao de Funcionarios/Veiculos) — cabecalhos coloridos
-const planStyles = StyleSheet.create({
-  block: { marginBottom: 14 },
-  orange: {
-    backgroundColor: "#F4B183",
-    textAlign: "center",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 12,
-    padding: 5,
-    color: "#111827",
-    borderWidth: 1,
-    borderColor: "#9CA3AF",
-  },
-  green: {
-    backgroundColor: "#C6E0B4",
-    textAlign: "center",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 9,
-    padding: 3,
-    color: "#111827",
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#9CA3AF",
-  },
-  headRow: {
-    flexDirection: "row",
-    backgroundColor: "#A9D08E",
-    fontFamily: "Helvetica-Bold",
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#9CA3AF",
-  },
-  row: {
-    flexDirection: "row",
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#9CA3AF",
-  },
-  cIt: { width: "9%", padding: 3, textAlign: "center", borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
-  cNome: { width: "53%", padding: 3, borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
-  cRg: { width: "19%", padding: 3, borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
-  cCpf: { width: "19%", padding: 3 },
-  vModel: { width: "45%", padding: 3, borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
-  vColor: { width: "23%", padding: 3, borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
-  vPlate: { width: "23%", padding: 3 },
 });
 
 const PHASE_LABELS: Record<string, string> = {
@@ -462,49 +412,62 @@ function OsDocument({ data }: { data: OsPdfData }) {
 }
 
 function CollaboratorsDocument({ data }: { data: OsPdfData }) {
-  const ROSTER_EXCLUDE = ["recusou", "substituido", "faltou"];
-  const local = (data.location || data.eventName || "LOCAL DO EVENTO").toUpperCase();
-  const eventoData = (dateStr: string) =>
-    format(parseISO(dateStr), "dd 'DE' MMMM 'DE' yyyy", { locale: ptBR }).toUpperCase();
-
+  const vcModel = { width: "34%", padding: 4, borderRightWidth: 0.5, borderRightColor: "#9CA3AF" } as const;
+  const vcColor = { width: "18%", padding: 4, borderRightWidth: 0.5, borderRightColor: "#9CA3AF" } as const;
+  const vcPlate = { width: "20%", padding: 4, borderRightWidth: 0.5, borderRightColor: "#9CA3AF" } as const;
+  const vcDriver = { width: "28%", padding: 4 } as const;
   return (
-    <Document title={`Relacao ${data.code}`} author={COMPANY.name}>
+    <Document title={`Colaboradores ${data.code}`} author={COMPANY.name}>
       <Page size="A4" style={styles.page}>
-        <BrandHeader size={15} />
-        <View style={styles.goldLine} />
+        <Header title="LISTA DE COLABORADORES E VEÍCULOS" />
+
+        <View style={styles.section}>
+          <Text>
+            <Text style={styles.label}>Evento: </Text>
+            {data.eventName} — {data.clientName}
+          </Text>
+          <Text>
+            <Text style={styles.label}>Local: </Text>
+            {data.location || "—"}
+          </Text>
+          <Text>
+            <Text style={styles.label}>Período: </Text>
+            {data.period}
+          </Text>
+          <Text>
+            <Text style={styles.label}>OS: </Text>
+            {data.code}
+          </Text>
+        </View>
 
         {data.shifts.map((s, i) => {
-          const roster = s.allocations.filter(
-            (a) => !ROSTER_EXCLUDE.includes(a.status)
+          const confirmed = s.allocations.filter((a) =>
+            ["confirmado", "compareceu", "pago"].includes(a.status)
           );
           return (
-            <View key={i} style={planStyles.block} wrap={false}>
-              <Text style={planStyles.orange}>{local}</Text>
-              <Text style={planStyles.green}>
-                EVENTO: {data.eventName.toUpperCase()} — {eventoData(s.service_date)}
+            <View key={i} style={styles.table} wrap={false}>
+              <Text style={styles.shiftHeader}>
+                {PHASE_LABELS[s.phase] ?? s.phase} — {d(s.service_date)} —{" "}
+                {t(s.start_time)} às {t(s.end_time)} — {confirmed.length}{" "}
+                confirmado(s)
               </Text>
-              <Text style={planStyles.green}>
-                RELAÇÃO DE FUNCIONÁRIOS · LIMPEZA {t(s.start_time)} ÀS {t(s.end_time)}
-              </Text>
-              <View style={planStyles.headRow}>
-                <Text style={planStyles.cIt}>IT</Text>
-                <Text style={planStyles.cNome}>NOME</Text>
-                <Text style={planStyles.cRg}>RG</Text>
-                <Text style={planStyles.cCpf}>CPF</Text>
+              <View style={[styles.row, styles.head]}>
+                <Text style={styles.listName}>Nome completo</Text>
+                <Text style={styles.listDoc}>CPF</Text>
+                <Text style={styles.listLast}>RG</Text>
               </View>
-              {roster.length === 0 ? (
-                <View style={planStyles.row}>
-                  <Text style={{ padding: 3, color: MUTED }}>
-                    Ninguém escalado neste turno ainda
+              {confirmed.length === 0 ? (
+                <View style={styles.row}>
+                  <Text style={{ padding: 4, color: MUTED }}>
+                    Nenhum colaborador confirmado neste turno
                   </Text>
                 </View>
               ) : (
-                roster.map((c, j) => (
-                  <View key={j} style={planStyles.row}>
-                    <Text style={planStyles.cIt}>{j + 1}</Text>
-                    <Text style={planStyles.cNome}>{c.name}</Text>
-                    <Text style={planStyles.cRg}>{c.rg ?? "—"}</Text>
-                    <Text style={planStyles.cCpf}>{c.cpf ?? "—"}</Text>
+                confirmed.map((c, j) => (
+                  <View key={j} style={styles.row}>
+                    <Text style={styles.listName}>{c.name}</Text>
+                    <Text style={styles.listDoc}>{c.cpf ?? "—"}</Text>
+                    <Text style={styles.listLast}>{c.rg ?? "—"}</Text>
                   </View>
                 ))
               )}
@@ -513,28 +476,34 @@ function CollaboratorsDocument({ data }: { data: OsPdfData }) {
         })}
 
         {data.vehicles.length > 0 && (
-          <View style={planStyles.block} wrap={false}>
-            <Text style={planStyles.orange}>{local}</Text>
-            <Text style={planStyles.green}>RELAÇÃO DE VEÍCULOS</Text>
-            <View style={planStyles.headRow}>
-              <Text style={planStyles.cIt}>IT</Text>
-              <Text style={planStyles.vModel}>MODELO</Text>
-              <Text style={planStyles.vColor}>COR</Text>
-              <Text style={planStyles.vPlate}>PLACA</Text>
+          <View style={styles.table} wrap={false}>
+            <Text style={styles.shiftHeader}>
+              VEÍCULOS — {data.vehicles.length} cadastrado(s)
+            </Text>
+            <View style={[styles.row, styles.head]}>
+              <Text style={vcModel}>Veículo</Text>
+              <Text style={vcColor}>Cor</Text>
+              <Text style={vcPlate}>Placa</Text>
+              <Text style={vcDriver}>Motorista / Documento</Text>
             </View>
             {data.vehicles.map((v, i) => (
-              <View key={i} style={planStyles.row}>
-                <Text style={planStyles.cIt}>{i + 1}</Text>
-                <Text style={planStyles.vModel}>{v.model}</Text>
-                <Text style={planStyles.vColor}>{v.color ?? "—"}</Text>
-                <Text style={planStyles.vPlate}>{v.plate ?? "—"}</Text>
+              <View key={i} style={styles.row}>
+                <Text style={vcModel}>{v.model}</Text>
+                <Text style={vcColor}>{v.color ?? "—"}</Text>
+                <Text style={vcPlate}>{v.plate ?? "—"}</Text>
+                <Text style={vcDriver}>
+                  {v.driver_name ?? "—"}
+                  {v.driver_document ? ` — ${v.driver_document}` : ""}
+                </Text>
               </View>
             ))}
           </View>
         )}
 
-        <Text style={{ color: MUTED, fontSize: 8, marginTop: 4 }}>
-          Gerado em {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}.
+        <Text style={{ color: MUTED, fontSize: 8 }}>
+          Total geral: {data.confirmedCollaborators.length} colaborador(es)
+          distintos confirmados e {data.vehicles.length} veículo(s). Lista
+          gerada em {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}.
         </Text>
 
         <Footer />

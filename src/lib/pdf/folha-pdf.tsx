@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     borderTopColor: PETROL,
     paddingTop: 4,
     fontSize: 6.5,
-    color: MUTED,
+    color: PETROL,
     textAlign: "center",
   },
   zebra: { backgroundColor: "#F7F9FA" },

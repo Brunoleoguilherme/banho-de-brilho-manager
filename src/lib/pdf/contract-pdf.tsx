@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     borderTopColor: PETROL,
     paddingTop: 8,
     fontSize: 8,
-    color: MUTED,
+    color: PETROL,
     textAlign: "center",
   },
 });

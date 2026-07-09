@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     borderTopColor: PETROL,
     paddingTop: 6,
     fontSize: 7.5,
-    color: MUTED,
+    color: PETROL,
     textAlign: "center",
   },
 });

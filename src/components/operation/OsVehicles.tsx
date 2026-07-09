@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Truck, Plus, Trash2, Loader2, Pencil } from "lucide-react";
+import { Truck, Plus, Trash2, Loader2, Pencil, Check } from "lucide-react";
 import {
   addOsVehicleAction,
   updateOsVehicleAction,
@@ -11,6 +11,7 @@ import {
 
 export interface OsVehicle {
   id: string;
+  vehicle_id: string | null;
   model: string;
   color: string | null;
   plate: string | null;
@@ -35,6 +36,11 @@ const emptyForm = {
   vehicle_id: "",
 };
 
+const norm = (p?: string | null) =>
+  (p ?? "").replace(/[\s-]/g, "").toUpperCase();
+const samePlate = (a?: string | null, b?: string | null) =>
+  !!norm(a) && norm(a) === norm(b);
+
 export function OsVehicles({
   osId,
   vehicles,
@@ -47,9 +53,40 @@ export function OsVehicles({
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [fleetBusy, setFleetBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  /** Veículo da OS que corresponde a um item da frota (por vínculo ou placa) */
+  function osVehicleFor(reg: VehiclePick): OsVehicle | undefined {
+    return vehicles.find(
+      (v) =>
+        (v.vehicle_id && v.vehicle_id === reg.id) || samePlate(v.plate, reg.plate)
+    );
+  }
+
+  /** Clica no carro da frota: inclui na OS se não estiver, ou tira se estiver */
+  async function toggleFleet(reg: VehiclePick) {
+    setFleetBusy(reg.id);
+    setError(null);
+    const existing = osVehicleFor(reg);
+    const result = existing
+      ? await deleteOsVehicleAction(existing.id, osId)
+      : await addOsVehicleAction({
+          operation_order_id: osId,
+          model: reg.model,
+          color: reg.color ?? "",
+          plate: reg.plate ?? "",
+          vehicle_id: reg.id,
+        });
+    setFleetBusy(null);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    router.refresh();
+  }
 
   function startEdit(v: OsVehicle) {
     setEditingId(v.id);
@@ -123,16 +160,58 @@ export function OsVehicles({
           className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-petrol hover:bg-brand-petrol/5"
         >
           <Plus className="h-3.5 w-3.5" />
-          Adicionar
+          Outro veículo
         </button>
       </div>
 
       {error && <p className="mb-2 text-xs text-danger">{error}</p>}
 
+      {registry.length > 0 && (
+        <div className="mb-4">
+          <p className="mb-1.5 text-xs font-medium text-ink-muted">
+            Frota cadastrada — clique para escolher quais carros vão nesta OS:
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {registry.map((r) => {
+              const included = !!osVehicleFor(r);
+              const loading = fleetBusy === r.id;
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => toggleFleet(r)}
+                  disabled={loading}
+                  title={
+                    included
+                      ? "Clique para tirar desta OS"
+                      : "Clique para incluir nesta OS"
+                  }
+                  className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition disabled:opacity-60 ${
+                    included
+                      ? "border-brand-teal bg-teal-50 font-medium text-brand-petrol"
+                      : "border-gray-200 text-ink-muted hover:border-brand-teal/50 hover:text-brand-petrol"
+                  }`}
+                >
+                  {loading ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : included ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Plus className="h-3 w-3" />
+                  )}
+                  {r.model}
+                  {r.plate ? ` · ${r.plate}` : ""}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {vehicles.length === 0 && !showForm && (
         <p className="text-sm text-ink-muted">
-          Nenhum veículo nesta OS. Eles entram na Relação de Veículos (para o
-          produtor do evento).
+          Nenhum veículo nesta OS ainda. Clique nos carros da frota acima para
+          incluir os que vão — eles entram na Relação de Veículos.
         </p>
       )}
 
@@ -185,27 +264,10 @@ export function OsVehicles({
 
       {showForm && (
         <form onSubmit={handleAdd} className="mt-3 space-y-2 rounded-lg bg-surface p-3">
-          {!editingId && registry.length > 0 && (
-            <div>
-              <label className="mb-1 block text-xs font-medium text-ink-muted">
-                Escolher veículo cadastrado
-              </label>
-              <select
-                className="input-base"
-                value={form.vehicle_id}
-                onChange={(e) => pickRegistry(e.target.value)}
-              >
-                <option value="">— Digitar manualmente —</option>
-                {registry.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.model}
-                    {r.color ? ` · ${r.color}` : ""}
-                    {r.plate ? ` · ${r.plate}` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <p className="text-xs text-ink-muted">
+            Veículo que não está na frota (só para esta OS). Para reaproveitar
+            sempre, cadastre no menu Veículos.
+          </p>
           <input
             required
             className="input-base"

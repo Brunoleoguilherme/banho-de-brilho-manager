@@ -84,7 +84,7 @@ export default async function OperationDetailPage({
       .limit(12),
     supabase
       .from("os_vehicles")
-      .select("id, model, color, plate, driver_name, driver_document")
+      .select("id, vehicle_id, model, color, plate, driver_name, driver_document")
       .eq("operation_order_id", id)
       .order("created_at"),
     supabase

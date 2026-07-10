@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   tCellTime: { width: "40%", padding: 4, borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
   tCellNum: { width: "15%", padding: 4, textAlign: "center", borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
   tCellNumLast: { width: "15%", padding: 4, textAlign: "center" },
-  legend: { fontSize: 8, color: MUTED, marginBottom: 12 },
+  legend: { fontSize: 8, color: PETROL, marginBottom: 12 },
   respTitle: {
     fontFamily: "Helvetica-Bold",
     color: PETROL,
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     borderTopColor: PETROL,
     paddingTop: 8,
     fontSize: 8,
-    color: PETROL,
+    color: MUTED,
     textAlign: "center",
   },
 });
@@ -346,7 +346,7 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
           <Text style={[styles.label, { marginTop: 16 }]}>
             Iracema Martins e Cláudio Guilherme
           </Text>
-          <Text style={{ color: MUTED, fontSize: 9 }}>{COMPANY.name}</Text>
+          <Text style={{ color: PETROL, fontSize: 9 }}>{COMPANY.name}</Text>
         </View>
 
         <View style={styles.footer} fixed>

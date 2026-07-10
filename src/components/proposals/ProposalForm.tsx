@@ -48,6 +48,30 @@ function phaseFor(serviceType: string): "montagem" | "realizacao" | "desmontagem
 
 const PHASE_ORDER = { montagem: 0, realizacao: 1, desmontagem: 2 } as const;
 
+/** Horas do turno a partir de "HH:MM" (trata a virada da meia-noite) */
+function shiftHours(start?: string | null, end?: string | null): number {
+  if (!start || !end) return 0;
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return 0;
+  let h = eh + em / 60 - (sh + sm / 60);
+  if (h <= 0) h += 24;
+  return h;
+}
+/** Abaixo de 9h paga o mínimo de 9h (padrão da BB) */
+function billedHours(h: number): number {
+  return h > 0 && h < 9 ? 9 : h;
+}
+/** VR por faixa: <10h = 1 refeição; 10–13h = refeição + lanche; >13h = 2 refeições */
+function vrForHours(refeicao: number, lanche: number, h: number): number {
+  if (h <= 0) return 0;
+  if (h < 10) return refeicao;
+  if (h <= 13) return refeicao + lanche;
+  return refeicao * 2;
+}
+/** Categorias geradas automaticamente pelo cronograma (não editáveis à mão) */
+const MANAGED_LABOR = ["Agente de limpeza", "Coordenador", "Vale-refeição"];
+
 interface ProposalFormProps {
   events: {
     id: string;
@@ -78,6 +102,27 @@ export function ProposalForm({
   const [loading, setLoading] = useState(false);
   const [targetValue, setTargetValue] = useState("");
   const [margemInfo, setMargemInfo] = useState<string | null>(null);
+  const [rates, setRates] = useState(() => {
+    const its = defaultValues?.items ?? [];
+    const ag = its.find((i) => i.category === "Agente de limpeza");
+    const co = its.find((i) => i.category === "Coordenador");
+    const vrLow = its.find(
+      (i) => i.category === "Vale-refeição" && Number(i.unit_price) <= 25
+    );
+    const vrMid = its.find(
+      (i) =>
+        i.category === "Vale-refeição" &&
+        Number(i.unit_price) > 25 &&
+        Number(i.unit_price) < 38
+    );
+    const refeicao = vrLow ? Number(vrLow.unit_price) || 19 : 19;
+    return {
+      agenteDiaria: ag ? Number(ag.unit_price) || 108 : 108,
+      coordDiaria: co ? Number(co.unit_price) || 216 : 216,
+      refeicao,
+      lanche: vrMid ? Math.max(0, Number(vrMid.unit_price) - refeicao) : 11,
+    };
+  });
 
   const {
     register,
@@ -109,48 +154,7 @@ export function ProposalForm({
           notes: "",
         },
       ],
-      items: [
-        {
-          category: "Agente de limpeza",
-          description: "Agente de limpeza (diária)",
-          quantity: 1,
-          hours: "",
-          unit_price: 0,
-          is_internal_cost: true,
-          show_on_proposal: true,
-          notes: "",
-        },
-        {
-          category: "Coordenador",
-          description: "Coordenador (diária)",
-          quantity: 0,
-          hours: "",
-          unit_price: 0,
-          is_internal_cost: true,
-          show_on_proposal: true,
-          notes: "",
-        },
-        {
-          category: "Vale-refeição",
-          description: "Vale-refeição",
-          quantity: 1,
-          hours: "",
-          unit_price: 0,
-          is_internal_cost: true,
-          show_on_proposal: false,
-          notes: "",
-        },
-        {
-          category: "Vale-transporte",
-          description: "Vale-transporte",
-          quantity: 1,
-          hours: "",
-          unit_price: 0,
-          is_internal_cost: true,
-          show_on_proposal: false,
-          notes: "",
-        },
-      ],
+      items: [],
     },
   });
 
@@ -243,26 +247,87 @@ export function ProposalForm({
     0
   );
 
-  // Quantidades preenchidas automaticamente a partir do cronograma:
-  // Agente = soma de AL · Coordenador = soma de CO · VR e VT = AL + CO
-  const autoQtyFor = (category: string): number | null => {
-    if (category === "Agente de limpeza") return totalAgents;
-    if (category === "Coordenador") return totalCoordinators;
-    if (category === "Vale-refeição" || category === "Vale-transporte")
-      return totalAgents + totalCoordinators;
-    return null;
-  };
+  const isManaged = (category?: string) =>
+    MANAGED_LABOR.includes(category ?? "");
 
-  const itemCategories = (values.items ?? []).map((i) => i.category).join("|");
+  // Gera automaticamente as linhas de Agente, Coordenador e Vale-refeição a
+  // partir do cronograma — cada faixa de horas com o seu próprio valor de
+  // diária/refeição. Vale-transporte fica manual; materiais/extras preservados.
+  const scheduleSig = JSON.stringify(
+    (values.schedule ?? []).map((s) => [
+      s.start_time,
+      s.end_time,
+      s.cleaning_agents,
+      s.coordinators,
+    ])
+  );
+  const ratesSig = JSON.stringify(rates);
   useEffect(() => {
-    (values.items ?? []).forEach((item, index) => {
-      const target = autoQtyFor(item.category);
-      if (target !== null && Number(item.quantity) !== target) {
-        setValue(`items.${index}.quantity`, target);
+    const sched = values.schedule ?? [];
+    const agentByH = new Map<number, number>();
+    const coordByH = new Map<number, number>();
+    const vrByBand = new Map<string, number>();
+    for (const s of sched) {
+      const h = billedHours(shiftHours(s.start_time, s.end_time));
+      const al = Number(s.cleaning_agents) || 0;
+      const co = Number(s.coordinators) || 0;
+      if (h > 0 && al > 0) agentByH.set(h, (agentByH.get(h) || 0) + al);
+      if (h > 0 && co > 0) coordByH.set(h, (coordByH.get(h) || 0) + co);
+      const ppl = al + co;
+      if (h > 0 && ppl > 0) {
+        const band = h < 10 ? "ate9" : h <= 13 ? "a10a13" : "mais13";
+        vrByBand.set(band, (vrByBand.get(band) || 0) + ppl);
       }
-    });
+    }
+    const managed: ProposalInput["items"] = [];
+    for (const [h, qty] of [...agentByH.entries()].sort((a, b) => a[0] - b[0])) {
+      managed.push({
+        category: "Agente de limpeza",
+        description: `Agente de limpeza (${h}h)`,
+        quantity: qty,
+        hours: h,
+        unit_price: rates.agenteDiaria,
+        is_internal_cost: true,
+        show_on_proposal: true,
+        notes: "",
+      });
+    }
+    for (const [h, qty] of [...coordByH.entries()].sort((a, b) => a[0] - b[0])) {
+      managed.push({
+        category: "Coordenador",
+        description: `Coordenador (${h}h)`,
+        quantity: qty,
+        hours: h,
+        unit_price: rates.coordDiaria,
+        is_internal_cost: true,
+        show_on_proposal: true,
+        notes: "",
+      });
+    }
+    const bandInfo: Record<string, { label: string; hours: number }> = {
+      ate9: { label: "até 9h", hours: 9 },
+      a10a13: { label: "10–13h", hours: 12 },
+      mais13: { label: "acima de 13h", hours: 14 },
+    };
+    for (const band of ["ate9", "a10a13", "mais13"]) {
+      const ppl = vrByBand.get(band);
+      if (!ppl) continue;
+      const info = bandInfo[band];
+      managed.push({
+        category: "Vale-refeição",
+        description: `Vale-refeição (${info.label})`,
+        quantity: ppl,
+        hours: "",
+        unit_price: vrForHours(rates.refeicao, rates.lanche, info.hours),
+        is_internal_cost: true,
+        show_on_proposal: false,
+        notes: "",
+      });
+    }
+    const others = (values.items ?? []).filter((i) => !isManaged(i.category));
+    itemsArray.replace([...managed, ...others]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalAgents, totalCoordinators, itemCategories]);
+  }, [scheduleSig, ratesSig]);
 
   // Modo inverso: informa o valor final e o sistema acha a margem
   function aplicarMargemPeloValor() {
@@ -444,9 +509,9 @@ export function ProposalForm({
           <div>
             <h2 className="text-base font-semibold text-ink">Precificação</h2>
             <p className="mt-0.5 text-sm text-ink-muted">
-              A quantidade de Agente, Coordenador, VR e VT soma automaticamente
-              do cronograma acima. Para quantidade manual, use outra categoria
-              (ex.: Extra ou Outro).
+              Agente, Coordenador e Vale-refeição são calculados automaticamente
+              por turno (cada faixa de horas com seu valor). Vale-transporte é
+              manual por turno; materiais e extras você adiciona abaixo.
             </p>
           </div>
           <button
@@ -468,6 +533,69 @@ export function ProposalForm({
             <Plus className="h-3.5 w-3.5" />
             Adicionar item
           </button>
+        </div>
+
+        <div className="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-surface p-3 sm:grid-cols-4">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">
+              Diária do agente (R$)
+            </label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              className="input-base"
+              value={rates.agenteDiaria}
+              onChange={(e) =>
+                setRates({ ...rates, agenteDiaria: Number(e.target.value) || 0 })
+              }
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">
+              Diária do coordenador (R$)
+            </label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              className="input-base"
+              value={rates.coordDiaria}
+              onChange={(e) =>
+                setRates({ ...rates, coordDiaria: Number(e.target.value) || 0 })
+              }
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">
+              Refeição (R$)
+            </label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              className="input-base"
+              value={rates.refeicao}
+              onChange={(e) =>
+                setRates({ ...rates, refeicao: Number(e.target.value) || 0 })
+              }
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-muted">
+              Lanche (R$)
+            </label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              className="input-base"
+              value={rates.lanche}
+              onChange={(e) =>
+                setRates({ ...rates, lanche: Number(e.target.value) || 0 })
+              }
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -555,14 +683,14 @@ export function ProposalForm({
                         type="number"
                         min={0}
                         step="any"
-                        readOnly={autoQtyFor(item?.category ?? "") !== null}
+                        readOnly={isManaged(item?.category)}
                         title={
-                          autoQtyFor(item?.category ?? "") !== null
-                            ? "Preenchido automaticamente pelo cronograma"
+                          isManaged(item?.category)
+                            ? "Calculado automaticamente pelo cronograma"
                             : undefined
                         }
                         className={`input-base w-20 text-center ${
-                          autoQtyFor(item?.category ?? "") !== null
+                          isManaged(item?.category)
                             ? "bg-teal-50 font-semibold text-brand-petrol"
                             : ""
                         }`}
@@ -579,15 +707,31 @@ export function ProposalForm({
                           type="number"
                           min={0}
                           step="any"
-                          className="input-base w-20 text-center"
+                          readOnly={isManaged(item?.category)}
+                          className={`input-base w-20 text-center ${
+                            isManaged(item?.category)
+                              ? "bg-teal-50 font-semibold text-brand-petrol"
+                              : ""
+                          }`}
                           placeholder="—"
-                          title="Agente/Coordenador: até 9h = 1 diária; da 10ª à 13ª hora soma a hora proporcional (diária ÷ 9); 14h ou mais = 2 diárias"
+                          title="Calculado pelo cronograma: até 9h = 1 diária; 9–13h = proporcional; acima de 13h = 2 diárias"
                           {...register(`items.${index}.hours`)}
                         />
                       )}
                     </td>
                     <td className="py-2 pr-2">
-                      <input type="number" min={0} step="0.01" className="input-base w-28" {...register(`items.${index}.unit_price`)} />
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        readOnly={isManaged(item?.category)}
+                        className={`input-base w-28 ${
+                          isManaged(item?.category)
+                            ? "bg-teal-50 font-semibold text-brand-petrol"
+                            : ""
+                        }`}
+                        {...register(`items.${index}.unit_price`)}
+                      />
                     </td>
                     <td className="py-2 pr-2 text-right font-medium text-ink">
                       {formatMoney(total)}

@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     borderTopColor: PETROL,
     paddingTop: 8,
     fontSize: 8,
-    color: MUTED,
+    color: PETROL,
     textAlign: "center",
   },
 });
@@ -209,7 +209,7 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
   return (
     <Document title={`Proposta ${data.code}`} author={COMPANY.name}>
       <Page size="A4" style={styles.page}>
-        <BrandHeader size={16} />
+        <BrandHeader size={16} subtitle="" />
         <View style={styles.goldLine} />
 
         <View style={styles.headerRow}>
@@ -350,7 +350,7 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
         </View>
 
         <View style={styles.footer} fixed>
-          <Text>
+          <Text style={styles.label}>
             {COMPANY.name} — CNPJ: {COMPANY.cnpj}
           </Text>
           <Text>

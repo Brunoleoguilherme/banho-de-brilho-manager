@@ -39,15 +39,17 @@ export function BrandHeader({
       <View style={{ marginBottom: 10 }}>
         {/* proporção real da logo recortada (~2,73:1), sem distorcer */}
         <Image src={LOGO} style={{ width: w, height: h }} />
-        <Text
-          style={{
-            fontSize: Math.max(6.5, size * 0.5),
-            color: PETROL,
-            marginTop: 4,
-          }}
-        >
-          {subtitle}
-        </Text>
+        {subtitle ? (
+          <Text
+            style={{
+              fontSize: Math.max(6.5, size * 0.5),
+              color: PETROL,
+              marginTop: 4,
+            }}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
     );
   }
@@ -80,15 +82,17 @@ export function BrandHeader({
         >
           BANHO DE BRILHO
         </Text>
-        <Text
-          style={{
-            fontSize: Math.max(6.5, size * 0.5),
-            color: PETROL,
-            marginTop: 3,
-          }}
-        >
-          {subtitle}
-        </Text>
+        {subtitle ? (
+          <Text
+            style={{
+              fontSize: Math.max(6.5, size * 0.5),
+              color: PETROL,
+              marginTop: 3,
+            }}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

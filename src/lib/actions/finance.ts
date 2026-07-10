@@ -354,7 +354,8 @@ export async function updatePayableAction(
  */
 export async function payPayableAction(
   id: string,
-  paidAmount: number
+  paidAmount: number,
+  paidDate?: string
 ): Promise<ActionResult & { partial?: boolean; interest?: number }> {
   const supabase = await createClient();
   const { data: payable } = await supabase
@@ -372,6 +373,8 @@ export async function payPayableAction(
       ((Number(payable.amount) || 0) - (Number(payable.interest_amount) || 0)) * 100
     ) / 100;
   const today = new Date().toISOString().slice(0, 10);
+  const payAt =
+    paidDate && /^\d{4}-\d{2}-\d{2}$/.test(paidDate) ? paidDate : today;
 
   if (paid >= original - 0.01) {
     // Pagamento integral (com ou sem juros)
@@ -382,7 +385,7 @@ export async function payPayableAction(
         amount: paid,
         interest_amount: interest,
         status: "pago",
-        paid_at: today,
+        paid_at: payAt,
       })
       .eq("id", id);
     if (error) return { ok: false, error: "Erro ao registrar pagamento." };
@@ -400,7 +403,7 @@ export async function payPayableAction(
       amount: paid,
       interest_amount: 0,
       status: "pago",
-      paid_at: today,
+      paid_at: payAt,
       notes: `${payable.notes ? payable.notes + " | " : ""}Pago parcial: R$ ${paid.toFixed(2)} de R$ ${original.toFixed(2)}`,
     })
     .eq("id", id);

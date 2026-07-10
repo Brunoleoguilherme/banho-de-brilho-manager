@@ -153,7 +153,21 @@ export function PayablesTable({ rows }: { rows: PayableRow[] }) {
     const paid = Number(normalized) || 0;
     if (paid <= 0) return;
 
-    const result = await payPayableAction(row.id, paid);
+    // Data do pagamento (permite lançar conta paga em data passada)
+    const hojeISO = new Date().toISOString().slice(0, 10);
+    const [ay, am, ad] = hojeISO.split("-");
+    const dateAns = prompt(
+      "Data do pagamento (dia/mês/ano):",
+      `${ad}/${am}/${ay}`
+    );
+    if (dateAns === null) return;
+    let paidDate = hojeISO;
+    const md = dateAns.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (md) {
+      paidDate = `${md[3]}-${md[2].padStart(2, "0")}-${md[1].padStart(2, "0")}`;
+    }
+
+    const result = await payPayableAction(row.id, paid, paidDate);
     if (!result.ok) {
       setError(result.error);
     } else if (result.partial) {

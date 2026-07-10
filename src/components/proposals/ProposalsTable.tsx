@@ -380,7 +380,7 @@ export function ProposalsTable({ rows }: { rows: ProposalListRow[] }) {
               {deleting.client} · {deleting.event}
               {deleting.kind === "onedrive"
                 ? " — remove só o registro do histórico (o arquivo continua no OneDrive)."
-                : ""}{" "}
+                : " — apaga também tudo que estiver vinculado (contrato, OS, turnos, escala, checklist, veículos e contas a receber)."}{" "}
               Esta ação não pode ser desfeita. Para confirmar, digite a{" "}
               <strong>sua senha de login</strong>:
             </p>

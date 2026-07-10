@@ -45,22 +45,26 @@ export async function deleteProposalAction(
     .single();
   if (!proposal) return { ok: false, error: "Proposta não encontrada." };
 
-  const [{ count: contracts }, { count: orders }] = await Promise.all([
-    supabase
-      .from("contracts")
-      .select("*", { count: "exact", head: true })
-      .eq("proposal_id", id),
-    supabase
-      .from("operation_orders")
-      .select("*", { count: "exact", head: true })
-      .eq("proposal_id", id),
-  ]);
-  if ((contracts ?? 0) > 0 || (orders ?? 0) > 0)
-    return {
-      ok: false,
-      error: `${proposal.code} já gerou contrato/OS e não pode ser excluída — isso apagaria o histórico da operação.`,
-    };
+  // Exclusão em CASCATA: apaga tudo que nasceu desta proposta — OS (com
+  // turnos, escala, checklist e veículos), contas a receber e contratos.
+  const { data: osList } = await supabase
+    .from("operation_orders")
+    .select("id")
+    .eq("proposal_id", id);
+  const osIds = (osList ?? []).map((o) => o.id as string);
 
+  if (osIds.length > 0) {
+    await supabase.from("employee_allocations").delete().in("operation_order_id", osIds);
+    await supabase.from("operation_shifts").delete().in("operation_order_id", osIds);
+    await supabase.from("operation_checklist_items").delete().in("operation_order_id", osIds);
+    await supabase.from("os_vehicles").delete().in("operation_order_id", osIds);
+    await supabase.from("receivables").delete().in("operation_order_id", osIds);
+    await supabase.from("operation_orders").delete().in("id", osIds);
+  }
+
+  await supabase.from("receivables").delete().eq("proposal_id", id);
+  await supabase.from("contracts").delete().eq("proposal_id", id);
+  await supabase.from("email_logs").delete().eq("proposal_id", id);
   await supabase.from("proposal_schedule_items").delete().eq("proposal_id", id);
   await supabase.from("proposal_items").delete().eq("proposal_id", id);
   const { error } = await supabase.from("proposals").delete().eq("id", id);
@@ -70,9 +74,12 @@ export async function deleteProposalAction(
     entity_type: "proposal",
     entity_id: id,
     action: "deleted",
-    description: `Proposta ${proposal.code} EXCLUÍDA por ${email} (senha confirmada)`,
+    description: `Proposta ${proposal.code} EXCLUÍDA com tudo vinculado (${osIds.length} OS, contratos e contas a receber) por ${email} (senha confirmada)`,
   });
   revalidatePath("/propostas");
+  revalidatePath("/contratos");
+  revalidatePath("/operacao");
+  revalidatePath("/financeiro");
   return { ok: true };
 }
 

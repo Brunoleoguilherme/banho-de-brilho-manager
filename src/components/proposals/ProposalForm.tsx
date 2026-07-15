@@ -720,18 +720,36 @@ export function ProposalForm({
                       )}
                     </td>
                     <td className="py-2 pr-2">
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        readOnly={isManaged(item?.category)}
-                        className={`input-base w-28 ${
-                          isManaged(item?.category)
-                            ? "bg-teal-50 font-semibold text-brand-petrol"
-                            : ""
-                        }`}
-                        {...register(`items.${index}.unit_price`)}
-                      />
+                      {item?.category === "Agente de limpeza" ||
+                      item?.category === "Coordenador" ? (
+                        <input
+                          type="text"
+                          readOnly
+                          title="Diária conforme as horas do turno"
+                          className="input-base w-28 bg-teal-50 font-semibold text-brand-petrol"
+                          value={formatMoney(
+                            itemTotal({
+                              quantity: 1,
+                              hours: hrs,
+                              unit_price: unit,
+                              category: item?.category,
+                            })
+                          )}
+                        />
+                      ) : (
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          readOnly={isManaged(item?.category)}
+                          className={`input-base w-28 ${
+                            isManaged(item?.category)
+                              ? "bg-teal-50 font-semibold text-brand-petrol"
+                              : ""
+                          }`}
+                          {...register(`items.${index}.unit_price`)}
+                        />
+                      )}
                     </td>
                     <td className="py-2 pr-2 text-right font-medium text-ink">
                       {formatMoney(total)}

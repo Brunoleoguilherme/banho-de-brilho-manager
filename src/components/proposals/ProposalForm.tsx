@@ -720,35 +720,51 @@ export function ProposalForm({
                       )}
                     </td>
                     <td className="py-2 pr-2">
-                      {item?.category === "Agente de limpeza" ||
-                      item?.category === "Coordenador" ? (
-                        <input
-                          type="text"
-                          readOnly
-                          title="Diária conforme as horas do turno"
+                      {isManaged(item?.category) ? (
+                        <div
+                          title={
+                            item?.category === "Agente de limpeza" ||
+                            item?.category === "Coordenador"
+                              ? "Diária conforme as horas do turno"
+                              : "Calculado automaticamente"
+                          }
                           className="input-base w-28 bg-teal-50 font-semibold text-brand-petrol"
-                          value={formatMoney(
-                            itemTotal({
-                              quantity: 1,
-                              hours: hrs,
-                              unit_price: unit,
-                              category: item?.category,
-                            })
+                        >
+                          {formatMoney(
+                            item?.category === "Agente de limpeza" ||
+                              item?.category === "Coordenador"
+                              ? itemTotal({
+                                  quantity: 1,
+                                  hours: hrs,
+                                  unit_price: unit,
+                                  category: item?.category,
+                                })
+                              : unit
                           )}
-                        />
+                        </div>
                       ) : (
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          readOnly={isManaged(item?.category)}
-                          className={`input-base w-28 ${
-                            isManaged(item?.category)
-                              ? "bg-teal-50 font-semibold text-brand-petrol"
-                              : ""
-                          }`}
-                          {...register(`items.${index}.unit_price`)}
-                        />
+                        <button
+                          type="button"
+                          title="Clique para editar o valor"
+                          onClick={() => {
+                            const ans = prompt(
+                              "Valor unitário (R$):",
+                              unit ? String(unit).replace(".", ",") : ""
+                            );
+                            if (ans === null) return;
+                            const raw = ans.trim().replace(/[R$\s]/g, "");
+                            const num =
+                              Number(
+                                raw.includes(",")
+                                  ? raw.replace(/\./g, "").replace(",", ".")
+                                  : raw
+                              ) || 0;
+                            setValue(`items.${index}.unit_price`, num);
+                          }}
+                          className="input-base w-28 text-left hover:border-brand-teal"
+                        >
+                          {formatMoney(unit)}
+                        </button>
                       )}
                     </td>
                     <td className="py-2 pr-2 text-right font-medium text-ink">

@@ -18,12 +18,12 @@ const MUTED = "#64748B";
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 10,
+    fontSize: 9.5,
     color: "#111827",
-    paddingTop: 40,
-    paddingBottom: 90,
+    paddingTop: 34,
+    paddingBottom: 80,
     paddingHorizontal: 48,
-    lineHeight: 1.5,
+    lineHeight: 1.4,
   },
   title: {
     fontFamily: "Helvetica-Bold",
@@ -36,9 +36,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: MUTED,
     textAlign: "center",
-    marginBottom: 18,
+    marginBottom: 12,
   },
-  clause: { marginBottom: 10 },
+  clause: { marginBottom: 7 },
   clauseTitle: {
     fontFamily: "Helvetica-Bold",
     color: PETROL,
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   tCellNum: { width: "15%", padding: 4, textAlign: "center", borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
   tCellNumLast: { width: "15%", padding: 4, textAlign: "center" },
   signatures: {
-    marginTop: 24,
+    marginTop: 16,
     flexDirection: "row",
     justifyContent: "space-between",
   },
@@ -294,7 +294,7 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
           </Text>
         </View>
 
-        <Text style={{ marginTop: 12 }}>
+        <Text style={{ marginTop: 8 }}>
           Belo Horizonte, {longDate(data.issue_date)}.
         </Text>
 

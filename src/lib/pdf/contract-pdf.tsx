@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   tCellNum: { width: "15%", padding: 4, textAlign: "center", borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
   tCellNumLast: { width: "15%", padding: 4, textAlign: "center" },
   signatures: {
-    marginTop: 40,
+    marginTop: 24,
     flexDirection: "row",
     justifyContent: "space-between",
   },
@@ -137,10 +137,50 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
     .filter(Boolean)
     .join(" – ");
 
-  const eventDateLabel =
-    data.event?.end_date && data.event.end_date !== data.event.start_date
-      ? `no período de ${longDate(data.event.start_date)} a ${longDate(data.event.end_date)}`
-      : `no dia ${longDate(data.event?.start_date ?? null)}`;
+  // Datas reais do evento a partir do cronograma (respeita dias avulsos):
+  // consecutivos -> "no período de X a Y"; avulsos -> "nos dias 03 e 06 de ..."
+  const uniqDates = Array.from(
+    new Set((data.schedule ?? []).map((s) => s.service_date).filter(Boolean))
+  ).sort();
+  let eventDateLabel: string;
+  if (uniqDates.length === 0) {
+    eventDateLabel =
+      data.event?.end_date && data.event.end_date !== data.event.start_date
+        ? `no período de ${longDate(data.event.start_date)} a ${longDate(data.event.end_date)}`
+        : `no dia ${longDate(data.event?.start_date ?? null)}`;
+  } else if (uniqDates.length === 1) {
+    eventDateLabel = `no dia ${longDate(uniqDates[0])}`;
+  } else {
+    const consecutivos = uniqDates.every(
+      (d, i) =>
+        i === 0 ||
+        (parseISO(d).getTime() - parseISO(uniqDates[i - 1]).getTime()) /
+          86400000 ===
+          1
+    );
+    if (consecutivos) {
+      eventDateLabel = `no período de ${longDate(uniqDates[0])} a ${longDate(
+        uniqDates[uniqDates.length - 1]
+      )}`;
+    } else {
+      const mesmoMes = uniqDates.every(
+        (d) => d.slice(0, 7) === uniqDates[0].slice(0, 7)
+      );
+      if (mesmoMes) {
+        const dias = uniqDates.map((d) => format(parseISO(d), "dd"));
+        const sufixo = format(parseISO(uniqDates[0]), "'de' MMMM 'de' yyyy", {
+          locale: ptBR,
+        });
+        eventDateLabel = `nos dias ${dias.slice(0, -1).join(", ")} e ${
+          dias[dias.length - 1]
+        } ${sufixo}`;
+      } else {
+        eventDateLabel = `nos dias ${uniqDates
+          .map((d) => longDate(d))
+          .join(" e ")}`;
+      }
+    }
+  }
 
   return (
     <Document title={`Contrato ${contractCode}`} author={COMPANY.name}>

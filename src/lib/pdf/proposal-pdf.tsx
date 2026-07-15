@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica",
     fontSize: 10,
     color: "#111827",
-    paddingTop: 40,
+    paddingTop: 128,
     paddingBottom: 90,
     paddingHorizontal: 48,
     lineHeight: 1.45,
@@ -48,6 +48,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: GOLD,
     marginBottom: 16,
+  },
+  pageHeader: {
+    position: "absolute",
+    top: 40,
+    left: 48,
+    right: 48,
   },
   section: { marginBottom: 12 },
   label: { fontFamily: "Helvetica-Bold" },
@@ -209,8 +215,10 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
   return (
     <Document title={`Proposta ${data.code}`} author={COMPANY.name}>
       <Page size="A4" style={styles.page}>
-        <BrandHeader size={16} subtitle="" />
-        <View style={styles.goldLine} />
+        <View style={styles.pageHeader} fixed>
+          <BrandHeader size={16} subtitle="" />
+          <View style={styles.goldLine} />
+        </View>
 
         <View style={styles.headerRow}>
           <Text>Belo Horizonte, {longDate(data.issue_date)}</Text>

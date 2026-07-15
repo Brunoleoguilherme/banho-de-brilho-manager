@@ -36,7 +36,7 @@ export function Watermark() {
       }}
     >
       {/* proporção real ~1,88:1; bem transparente para não atrapalhar a leitura */}
-      <Image src={LOGO} style={{ width: 440, height: 234, opacity: 0.5 }} />
+      <Image src={LOGO} style={{ width: 440, height: 234, opacity: 0.35 }} />
     </View>
   );
 }

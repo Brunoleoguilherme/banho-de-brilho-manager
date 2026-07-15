@@ -10,6 +10,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { COMPANY } from "@/lib/constants";
 import { eventFullLocation, type ProposalPdfData } from "./proposal-data";
+import { Watermark } from "./Watermark";
 
 // Identidade visual da marca (azul-escuro)
 const PETROL = "#0F2742";
@@ -18,12 +19,12 @@ const MUTED = "#64748B";
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 9.5,
+    fontSize: 10,
     color: "#111827",
-    paddingTop: 34,
-    paddingBottom: 80,
+    paddingTop: 40,
+    paddingBottom: 90,
     paddingHorizontal: 48,
-    lineHeight: 1.4,
+    lineHeight: 1.5,
   },
   title: {
     fontFamily: "Helvetica-Bold",
@@ -36,9 +37,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: MUTED,
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: 18,
   },
-  clause: { marginBottom: 7 },
+  clause: { marginBottom: 10 },
   clauseTitle: {
     fontFamily: "Helvetica-Bold",
     color: PETROL,
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
   tCellNum: { width: "15%", padding: 4, textAlign: "center", borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
   tCellNumLast: { width: "15%", padding: 4, textAlign: "center" },
   signatures: {
-    marginTop: 16,
+    marginTop: 40,
     flexDirection: "row",
     justifyContent: "space-between",
   },
@@ -185,6 +186,7 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
   return (
     <Document title={`Contrato ${contractCode}`} author={COMPANY.name}>
       <Page size="A4" style={styles.page}>
+        <Watermark />
         <Text style={styles.title}>
           CONTRATO SIMPLIFICADO DE PRESTAÇÃO DE SERVIÇOS DE LIMPEZA
         </Text>
@@ -286,28 +288,30 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
           </Text>
         </View>
 
-        <View style={styles.clause}>
-          <Text style={styles.clauseTitle}>7. FORO</Text>
-          <Text>
-            Fica eleito o foro da comarca de Belo Horizonte/MG para dirimir
-            quaisquer dúvidas oriundas do presente contrato.
-          </Text>
-        </View>
-
-        <Text style={{ marginTop: 8 }}>
-          Belo Horizonte, {longDate(data.issue_date)}.
-        </Text>
-
-        <View style={styles.signatures} wrap={false}>
-          <View style={styles.signatureBlock}>
-            <Text style={styles.signatureLine}>
-              {COMPANY.name}{"\n"}CONTRATADA
+        <View wrap={false}>
+          <View style={styles.clause}>
+            <Text style={styles.clauseTitle}>7. FORO</Text>
+            <Text>
+              Fica eleito o foro da comarca de Belo Horizonte/MG para dirimir
+              quaisquer dúvidas oriundas do presente contrato.
             </Text>
           </View>
-          <View style={styles.signatureBlock}>
-            <Text style={styles.signatureLine}>
-              {clientName}{"\n"}CONTRATANTE
-            </Text>
+
+          <Text style={{ marginTop: 12 }}>
+            Belo Horizonte, {longDate(data.issue_date)}.
+          </Text>
+
+          <View style={styles.signatures}>
+            <View style={styles.signatureBlock}>
+              <Text style={styles.signatureLine}>
+                {COMPANY.name}{"\n"}CONTRATADA
+              </Text>
+            </View>
+            <View style={styles.signatureBlock}>
+              <Text style={styles.signatureLine}>
+                {clientName}{"\n"}CONTRATANTE
+              </Text>
+            </View>
           </View>
         </View>
 

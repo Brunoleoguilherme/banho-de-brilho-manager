@@ -27,6 +27,7 @@ import { Field, FormError, SubmitButton } from "@/components/forms/fields";
 import { DisposablesCalculator } from "@/components/proposals/DisposablesCalculator";
 
 const PHASES = [
+  { value: "continuo", label: "Turno contínuo" },
   { value: "montagem", label: "Montagem" },
   { value: "realizacao", label: "Realização" },
   { value: "desmontagem", label: "Desmontagem" },
@@ -46,7 +47,7 @@ function phaseFor(serviceType: string): "montagem" | "realizacao" | "desmontagem
   return "realizacao";
 }
 
-const PHASE_ORDER = { montagem: 0, realizacao: 1, desmontagem: 2 } as const;
+const PHASE_ORDER = { continuo: -1, montagem: 0, realizacao: 1, desmontagem: 2 } as const;
 
 /** Horas do turno a partir de "HH:MM" (trata a virada da meia-noite) */
 function shiftHours(start?: string | null, end?: string | null): number {
@@ -497,6 +498,31 @@ export function ProposalForm({
             </tbody>
           </table>
         </div>
+        <button
+          type="button"
+          onClick={() =>
+            scheduleArray.append({
+              phase: "continuo",
+              service_date: "",
+              start_time: "",
+              end_time: "",
+              cleaning_agents: 0,
+              coordinators: 0,
+              notes: "",
+            })
+          }
+          className="mt-3 flex items-center gap-1.5 rounded-lg bg-brand-petrol/5 px-3 py-2 text-xs font-semibold text-brand-petrol hover:bg-brand-petrol/10"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Adicionar turno contínuo
+        </button>
+        <p className="mt-2 text-xs text-ink-muted">
+          Turno contínuo: use quando os MESMOS funcionários trabalham direto por
+          várias fases — o sistema soma as horas e aplica a diária pelo total do
+          período (ex.: 09h às 02h = 17h = 2 diárias). Nas fases (montagem,
+          realização, desmontagem) deixe apenas o reforço/substituição de quem
+          não é contínuo, para não contar a mesma pessoa duas vezes.
+        </p>
         {errors.schedule && Array.isArray(errors.schedule) && (
           <p className="mt-2 text-xs text-danger">
             Verifique as datas do cronograma.

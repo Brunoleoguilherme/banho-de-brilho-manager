@@ -11,7 +11,7 @@ const marginPercent = z.coerce
   .max(1000, "Máximo 1000");
 
 export const scheduleItemSchema = z.object({
-  phase: z.enum(["montagem", "realizacao", "desmontagem"]),
+  phase: z.enum(["continuo", "montagem", "realizacao", "desmontagem"]),
   service_date: z.string().min(1, "Informe a data"),
   start_time: optionalText,
   end_time: optionalText,

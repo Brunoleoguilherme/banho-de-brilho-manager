@@ -20,6 +20,7 @@ import {
 import { formatDate, formatDateTime, formatTime, formatMoney } from "@/lib/utils";
 
 const PHASE_LABELS: Record<string, string> = {
+  continuo: "Turno contínuo",
   montagem: "Montagem",
   realizacao: "Realização",
   desmontagem: "Desmontagem",

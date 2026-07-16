@@ -88,6 +88,7 @@ const styles = StyleSheet.create({
 });
 
 const PHASE_LABELS: Record<string, string> = {
+  continuo: "Turno contínuo",
   montagem: "Montagem",
   realizacao: "Realização",
   desmontagem: "Desmontagem",
@@ -120,7 +121,7 @@ interface ContractPdfProps {
 }
 
 function ContractDocument({ data, contractCode }: ContractPdfProps) {
-  const phases = ["montagem", "realizacao", "desmontagem"].filter((phase) =>
+  const phases = ["continuo", "montagem", "realizacao", "desmontagem"].filter((phase) =>
     data.schedule.some((s) => s.phase === phase)
   );
 
@@ -295,14 +296,14 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
             Pela prestação dos serviços, o CONTRATANTE pagará à CONTRATADA o
             valor de <Text style={styles.bold}>{money(data.total_amount)}</Text>
             {data.amount_in_words ? ` (${data.amount_in_words})` : ""}
-            {data.payment_terms ? `, ${data.payment_terms.toLowerCase()}` : ""}
-            {data.payment_due_date
-              ? `, com vencimento em ${longDate(data.payment_due_date)}`
-              : ""}
-            .
+            {data.payment_terms ? `, ${data.payment_terms.toLowerCase()}` : ""}.
           </Text>
-          <Text style={{ marginTop: 4 }}>
-            <Text style={styles.bold}>Dados bancários para depósito: </Text>
+          <Text style={{ marginTop: 6 }}>
+            <Text style={styles.bold}>6.1 Data do vencimento: </Text>
+            {data.payment_due_date ? longDate(data.payment_due_date) : "—"}
+          </Text>
+          <Text style={{ marginTop: 2 }}>
+            <Text style={styles.bold}>6.2 Dados bancários para depósito: </Text>
             {COMPANY.bank.name} — Agência: {COMPANY.bank.agency} — Conta
             corrente: {COMPANY.bank.account} — PIX ({COMPANY.bank.pixKind}):{" "}
             {COMPANY.bank.pix}.
@@ -326,7 +327,6 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
             <View style={styles.signatureBlock}>
               <Text style={styles.signatureLine}>
                 {COMPANY.name}{"\n"}CONTRATADA
-                {COMPANY.representative ? `\n${COMPANY.representative}` : ""}
               </Text>
             </View>
             <View style={styles.signatureBlock}>

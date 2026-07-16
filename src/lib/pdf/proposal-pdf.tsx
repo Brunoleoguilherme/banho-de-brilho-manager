@@ -112,6 +112,7 @@ const styles = StyleSheet.create({
 });
 
 const PHASE_LABELS: Record<string, string> = {
+  continuo: "Turno contínuo",
   montagem: "Montagem",
   realizacao: "Realização",
   desmontagem: "Desmontagem",
@@ -139,7 +140,7 @@ function money(value: number): string {
 }
 
 function ProposalDocument({ data }: { data: ProposalPdfData }) {
-  const phases = ["montagem", "realizacao", "desmontagem"].filter((phase) =>
+  const phases = ["continuo", "montagem", "realizacao", "desmontagem"].filter((phase) =>
     data.schedule.some((s) => s.phase === phase)
   );
 
@@ -354,7 +355,6 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
           <Text style={[styles.label, { marginTop: 16 }]}>
             Iracema Martins e Cláudio Guilherme
           </Text>
-          <Text style={{ color: PETROL, fontSize: 9 }}>{COMPANY.name}</Text>
         </View>
 
         <View style={styles.footer} fixed>

@@ -410,6 +410,98 @@ export async function changeProposalStatusAction(
 }
 
 /**
+ * Altera o número (código BBP) de uma proposta — apenas administradores.
+ * Renumera a família inteira (a proposta e suas revisões que compartilham o
+ * mesmo número/ano), recalculando o código de cada uma. Bloqueia se o novo
+ * número já estiver em uso no mesmo ano.
+ */
+export async function updateProposalNumberAction(
+  id: string,
+  newNumber: number
+): Promise<ActionResult> {
+  const n = Math.trunc(Number(newNumber));
+  if (!Number.isFinite(n) || n <= 0)
+    return {
+      ok: false,
+      error: "Informe um número válido (inteiro maior que zero).",
+    };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sessão expirada. Entre novamente." };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (profile?.role !== "admin")
+    return {
+      ok: false,
+      error: "Apenas administradores podem alterar o número da proposta.",
+    };
+
+  const { data: proposal } = await supabase
+    .from("proposals")
+    .select("id, number, year, revision, code")
+    .eq("id", id)
+    .single();
+  if (!proposal) return { ok: false, error: "Proposta não encontrada." };
+
+  if (n === proposal.number)
+    return { ok: false, error: `A proposta já é a de número ${n}.` };
+
+  // Não pode colidir com outra proposta do mesmo ano
+  const { data: clash } = await supabase
+    .from("proposals")
+    .select("code")
+    .eq("year", proposal.year)
+    .eq("number", n)
+    .limit(1)
+    .maybeSingle();
+  if (clash)
+    return {
+      ok: false,
+      error: `Já existe a proposta ${clash.code} com o número ${String(n).padStart(3, "0")} em ${proposal.year}. Escolha outro número.`,
+    };
+
+  // Renumera a família inteira (base + revisões que compartilham número/ano)
+  const { data: family } = await supabase
+    .from("proposals")
+    .select("id, revision")
+    .eq("year", proposal.year)
+    .eq("number", proposal.number);
+
+  const rows =
+    family && family.length > 0
+      ? family
+      : [{ id: proposal.id, revision: proposal.revision }];
+
+  for (const row of rows) {
+    const { error } = await supabase
+      .from("proposals")
+      .update({ number: n, code: buildCode(n, proposal.year, row.revision) })
+      .eq("id", row.id);
+    if (error)
+      return { ok: false, error: "Erro ao alterar o número. " + error.message };
+  }
+
+  const novoCode = buildCode(n, proposal.year, proposal.revision);
+  await logActivity({
+    entity_type: "proposal",
+    entity_id: proposal.id,
+    action: "number_changed",
+    description: `Número da proposta alterado de ${proposal.code} para ${novoCode} por ${user.email}`,
+  });
+
+  revalidatePath("/propostas");
+  revalidatePath(`/propostas/${id}`);
+  return { ok: true, id };
+}
+
+/**
  * Cria uma revisão da proposta: mesmo número, revision + 1,
  * código BBPxxxRn/ano, status rascunho.
  */

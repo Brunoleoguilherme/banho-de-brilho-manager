@@ -8,6 +8,7 @@ import { ProposalActions } from "@/components/proposals/ProposalActions";
 import { formatDate, formatDateTime, formatMoney, formatTime } from "@/lib/utils";
 
 const PHASE_LABELS: Record<string, string> = {
+  continuo: "Turno contínuo",
   montagem: "Montagem",
   realizacao: "Realização",
   desmontagem: "Desmontagem",
@@ -68,6 +69,14 @@ export default async function ProposalDetailPage({
 
   if (!proposal) notFound();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: me } = user
+    ? await supabase.from("profiles").select("role").eq("id", user.id).single()
+    : { data: null };
+  const isAdmin = me?.role === "admin";
+
   const client = proposal.clients as { name: string; document: string | null } | null;
   const event = proposal.events as {
     name: string;
@@ -88,6 +97,8 @@ export default async function ProposalDetailPage({
         <ProposalActions
           proposalId={proposal.id}
           code={proposal.code}
+          number={proposal.number}
+          canRenumber={isAdmin}
           status={proposal.status}
           contactEmail={proposal.contact_email}
         />

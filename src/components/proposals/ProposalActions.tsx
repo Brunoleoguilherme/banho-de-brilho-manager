@@ -12,11 +12,13 @@ import {
   MessagesSquare,
   CopyPlus,
   Ban,
+  Hash,
   Loader2,
 } from "lucide-react";
 import {
   changeProposalStatusAction,
   createRevisionAction,
+  updateProposalNumberAction,
 } from "@/lib/actions/proposals";
 import { sendProposalEmailAction } from "@/lib/actions/send-proposal";
 import { approveProposalAction } from "@/lib/actions/approve-proposal";
@@ -24,6 +26,8 @@ import { approveProposalAction } from "@/lib/actions/approve-proposal";
 interface ProposalActionsProps {
   proposalId: string;
   code: string;
+  number: number;
+  canRenumber: boolean;
   status: string;
   contactEmail: string | null;
 }
@@ -31,6 +35,8 @@ interface ProposalActionsProps {
 export function ProposalActions({
   proposalId,
   code,
+  number,
+  canRenumber,
   status,
   contactEmail,
 }: ProposalActionsProps) {
@@ -39,6 +45,26 @@ export function ProposalActions({
   const [error, setError] = useState<string | null>(null);
   const [showSend, setShowSend] = useState(false);
   const [email, setEmail] = useState(contactEmail ?? "");
+  const [showNumber, setShowNumber] = useState(false);
+  const [numberValue, setNumberValue] = useState(String(number));
+
+  async function handleNumber(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy("number");
+    setError(null);
+    const result = await updateProposalNumberAction(
+      proposalId,
+      Number(numberValue)
+    );
+    if (!result.ok) {
+      setError(result.error);
+      setBusy(null);
+      return;
+    }
+    setShowNumber(false);
+    setBusy(null);
+    router.refresh();
+  }
 
   const editable = ["rascunho", "em_revisao_interna", "enviada", "em_negociacao"].includes(status);
   const isFinal = ["aprovada", "recusada", "cancelada", "convertida_contrato", "convertida_os"].includes(status);
@@ -137,6 +163,16 @@ export function ProposalActions({
           Baixar PDF
         </a>
 
+        {canRenumber && (
+          <button
+            onClick={() => setShowNumber((v) => !v)}
+            className={`${btn} border border-gray-300 bg-white text-ink hover:bg-gray-50`}
+          >
+            <Hash className="h-4 w-4" />
+            Alterar número
+          </button>
+        )}
+
         {!isFinal && (
           <button
             onClick={() => setShowSend((v) => !v)}
@@ -214,6 +250,42 @@ export function ProposalActions({
           </button>
         )}
       </div>
+
+      {showNumber && (
+        <form
+          onSubmit={handleNumber}
+          className="flex flex-wrap items-end gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-card"
+        >
+          <div>
+            <label className="label-base">Novo número da proposta {code}</label>
+            <input
+              type="number"
+              min={1}
+              required
+              className="input-base w-40"
+              value={numberValue}
+              onChange={(e) => setNumberValue(e.target.value)}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={busy === "number"}
+            className={`${btn} bg-brand-petrol text-white hover:bg-brand-dark`}
+          >
+            {busy === "number" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Hash className="h-4 w-4" />
+            )}
+            Salvar número
+          </button>
+          <p className="w-full text-xs text-ink-muted">
+            O código é recalculado mantendo o ano e a revisão. Se a proposta tiver
+            revisões, todas passam a usar o novo número. Não é permitido repetir um
+            número já usado no mesmo ano.
+          </p>
+        </form>
+      )}
 
       {showSend && (
         <form

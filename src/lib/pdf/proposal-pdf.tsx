@@ -334,6 +334,9 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
           </View>
         ) : null}
 
+        {/* Valor/forma de pagamento + encerramento ficam sempre juntos:
+            se não couber na página, o bloco inteiro desce para a próxima. */}
+        <View wrap={false}>
         <View style={styles.valueBox} wrap={false}>
           <Text>
             <Text style={styles.label}>Valor e forma de pagamento: </Text>
@@ -355,6 +358,7 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
           <Text style={[styles.label, { marginTop: 16 }]}>
             Iracema Martins e Cláudio Guilherme
           </Text>
+        </View>
         </View>
 
         <View style={styles.footer} fixed>

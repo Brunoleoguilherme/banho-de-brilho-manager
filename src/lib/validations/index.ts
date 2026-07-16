@@ -21,6 +21,10 @@ export const clientSchema = z.object({
   city: optionalText,
   state: optionalText,
   zip_code: optionalText,
+  // Responsável legal que assina o contrato (opcional)
+  legal_rep_name: optionalText,
+  legal_rep_cpf: optionalText,
+  legal_rep_role: optionalText,
   notes: optionalText,
 });
 

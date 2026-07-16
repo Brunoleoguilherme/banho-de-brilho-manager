@@ -11,6 +11,7 @@ export interface ProposalPdfData {
   total_amount: number;
   amount_in_words: string | null;
   payment_terms: string | null;
+  payment_due_date: string | null;
   emission_type: string;
   responsibilities_company: string | null;
   responsibilities_client: string | null;
@@ -27,6 +28,9 @@ export interface ProposalPdfData {
     city: string | null;
     state: string | null;
     zip_code: string | null;
+    legal_rep_name: string | null;
+    legal_rep_cpf: string | null;
+    legal_rep_role: string | null;
   } | null;
   event: {
     name: string;
@@ -78,7 +82,7 @@ export async function getProposalPdfData(
     supabase
       .from("proposals")
       .select(
-        "*, clients(name, email, phone, legal_name, document, address, address_number, address_complement, neighborhood, city, state, zip_code), events(name, location_name, address, address_number, address_complement, neighborhood, zip_code, city, state, start_date, end_date, event_start_time, event_end_time, estimated_public)"
+        "*, clients(name, email, phone, legal_name, document, address, address_number, address_complement, neighborhood, city, state, zip_code, legal_rep_name, legal_rep_cpf, legal_rep_role), events(name, location_name, address, address_number, address_complement, neighborhood, zip_code, city, state, start_date, end_date, event_start_time, event_end_time, estimated_public)"
       )
       .eq("id", id)
       .single(),
@@ -102,6 +106,7 @@ export async function getProposalPdfData(
     total_amount: Number(proposal.total_amount) || 0,
     amount_in_words: proposal.amount_in_words,
     payment_terms: proposal.payment_terms,
+    payment_due_date: proposal.payment_due_date ?? null,
     emission_type: proposal.emission_type ?? "nota_fiscal",
     responsibilities_company: proposal.responsibilities_company,
     responsibilities_client: proposal.responsibilities_client,

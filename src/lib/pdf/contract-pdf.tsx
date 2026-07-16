@@ -10,7 +10,6 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { COMPANY } from "@/lib/constants";
 import { eventFullLocation, type ProposalPdfData } from "./proposal-data";
-import { Watermark } from "./Watermark";
 
 // Identidade visual da marca (azul-escuro)
 const PETROL = "#0F2742";
@@ -138,6 +137,19 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
     .filter(Boolean)
     .join(" – ");
 
+  // Responsável legal do CONTRATANTE (quem assina) — vem do cadastro do cliente
+  const legalRepName = data.client?.legal_rep_name?.trim() || "";
+  const legalRepCpf = data.client?.legal_rep_cpf?.trim() || "";
+  const legalRepRole = data.client?.legal_rep_role?.trim() || "";
+  const contratanteRep = legalRepName
+    ? `, tendo como representante ${legalRepName}${
+        legalRepRole ? `, ${legalRepRole}` : ""
+      }${legalRepCpf ? `, portador(a) do CPF nº ${legalRepCpf}` : ""}`
+    : data.contact_name
+    ? `, representada por ${data.contact_name}`
+    : "";
+  const contratanteSignatory = legalRepName || data.contact_name || "";
+
   // Datas reais do evento a partir do cronograma (respeita dias avulsos):
   // consecutivos -> "no período de X a Y"; avulsos -> "nos dias 03 e 06 de ..."
   const uniqDates = Array.from(
@@ -186,7 +198,6 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
   return (
     <Document title={`Contrato ${contractCode}`} author={COMPANY.name}>
       <Page size="A4" style={styles.page}>
-        <Watermark />
         <Text style={styles.title}>
           CONTRATO SIMPLIFICADO DE PRESTAÇÃO DE SERVIÇOS DE LIMPEZA
         </Text>
@@ -207,7 +218,7 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
             {clientName}
             {data.client?.document ? `, CNPJ/CPF ${data.client.document}` : ""}
             {clientAddress ? `, ${clientAddress}` : ""}
-            {data.contact_name ? `, representada por ${data.contact_name}` : ""}.
+            {contratanteRep}.
           </Text>
         </View>
 
@@ -251,7 +262,7 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
                 ))}
             </View>
           ))}
-          <Text style={{ fontSize: 8, color: MUTED }}>
+          <Text style={{ fontSize: 8, color: PETROL, fontFamily: "Helvetica-Bold" }}>
             ** AL = Agente de Limpeza ** CO = Coordenador de Limpeza
           </Text>
         </View>
@@ -284,7 +295,17 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
             Pela prestação dos serviços, o CONTRATANTE pagará à CONTRATADA o
             valor de <Text style={styles.bold}>{money(data.total_amount)}</Text>
             {data.amount_in_words ? ` (${data.amount_in_words})` : ""}
-            {data.payment_terms ? `, ${data.payment_terms.toLowerCase()}` : ""}.
+            {data.payment_terms ? `, ${data.payment_terms.toLowerCase()}` : ""}
+            {data.payment_due_date
+              ? `, com vencimento em ${longDate(data.payment_due_date)}`
+              : ""}
+            .
+          </Text>
+          <Text style={{ marginTop: 4 }}>
+            <Text style={styles.bold}>Dados bancários para depósito: </Text>
+            {COMPANY.bank.name} — Agência: {COMPANY.bank.agency} — Conta
+            corrente: {COMPANY.bank.account} — PIX ({COMPANY.bank.pixKind}):{" "}
+            {COMPANY.bank.pix}.
           </Text>
         </View>
 
@@ -305,11 +326,13 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
             <View style={styles.signatureBlock}>
               <Text style={styles.signatureLine}>
                 {COMPANY.name}{"\n"}CONTRATADA
+                {COMPANY.representative ? `\n${COMPANY.representative}` : ""}
               </Text>
             </View>
             <View style={styles.signatureBlock}>
               <Text style={styles.signatureLine}>
                 {clientName}{"\n"}CONTRATANTE
+                {contratanteSignatory ? `\n${contratanteSignatory}` : ""}
               </Text>
             </View>
           </View>

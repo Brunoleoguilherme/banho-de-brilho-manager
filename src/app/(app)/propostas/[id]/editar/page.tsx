@@ -74,6 +74,7 @@ export default async function EditProposalPage({
     valid_until: proposal.valid_until ?? "",
     emission_type: proposal.emission_type ?? "nota_fiscal",
     payment_terms: proposal.payment_terms ?? "",
+    payment_due_date: proposal.payment_due_date ?? "",
     responsibilities_company: proposal.responsibilities_company ?? "",
     responsibilities_client: proposal.responsibilities_client ?? "",
     notes: proposal.notes ?? "",

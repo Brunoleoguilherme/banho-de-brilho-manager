@@ -158,6 +158,7 @@ function buildProposalRecord(data: ProposalInput) {
       valid_until: data.valid_until ?? "",
       emission_type: data.emission_type,
       payment_terms: data.payment_terms ?? "",
+      payment_due_date: data.payment_due_date ?? "",
       responsibilities_company: data.responsibilities_company ?? "",
       responsibilities_client: data.responsibilities_client ?? "",
       notes: data.notes ?? "",

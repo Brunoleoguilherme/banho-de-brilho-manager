@@ -961,6 +961,9 @@ export function ProposalForm({
         <Field label="Forma de pagamento" error={errors.payment_terms?.message}>
           <input className="input-base" placeholder="Ex.: Contra entrega de Nota Fiscal" {...register("payment_terms")} />
         </Field>
+        <Field label="Data de vencimento do pagamento" error={errors.payment_due_date?.message}>
+          <input type="date" className="input-base" {...register("payment_due_date")} />
+        </Field>
         <Field label="Observações internas (não vão para o PDF)" className="md:col-span-2">
           <textarea rows={2} className="input-base" {...register("notes")} />
         </Field>

@@ -42,6 +42,7 @@ export const proposalSchema = z.object({
   valid_until: optionalText,
   emission_type: z.enum(["nota_fiscal", "recibo"]),
   payment_terms: optionalText,
+  payment_due_date: optionalText,
   responsibilities_company: optionalText,
   responsibilities_client: optionalText,
   notes: optionalText,

@@ -31,6 +31,9 @@ export interface Client {
   city: string | null;
   state: string | null;
   zip_code: string | null;
+  legal_rep_name: string | null;
+  legal_rep_cpf: string | null;
+  legal_rep_role: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;

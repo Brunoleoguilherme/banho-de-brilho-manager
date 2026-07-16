@@ -69,6 +69,16 @@ export const COMPANY = {
   zip: "30.431-045",
   phones: "(31) 3889-2960 / 99986-2960 / 99130-4768",
   email: "bh@banhodebrilho.com.br",
+  // Responsável legal da CONTRATADA (assina os contratos)
+  representative: "Cláudio Lúcio Guilherme",
+  // Dados bancários para depósito (aparecem na cláusula de preço do contrato)
+  bank: {
+    name: "Banco Inter (077)",
+    agency: "0001",
+    account: "15.658.494-8",
+    pix: "03.232.988/0001-02",
+    pixKind: "CNPJ",
+  },
 } as const;
 
 /** Converte "limpeza_montagem,limpeza_desmontagem" em "Limpeza montagem + Limpeza desmontagem" */

@@ -10,7 +10,6 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { COMPANY } from "@/lib/constants";
 import { BrandHeader } from "./BrandHeader";
-import { Watermark } from "./Watermark";
 import { eventFullLocation, type ProposalPdfData } from "./proposal-data";
 
 // Identidade visual da marca (azul-escuro + verde-limão)
@@ -216,7 +215,6 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
   return (
     <Document title={`Proposta ${data.code}`} author={COMPANY.name}>
       <Page size="A4" style={styles.page}>
-        <Watermark />
         <View style={styles.pageHeader} fixed>
           <BrandHeader size={16} subtitle="" />
           <View style={styles.goldLine} />

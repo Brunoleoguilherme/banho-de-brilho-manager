@@ -37,6 +37,9 @@ export function ClientForm({ client }: { client?: Client }) {
           city: client.city ?? "",
           state: client.state ?? "",
           zip_code: client.zip_code ?? "",
+          legal_rep_name: client.legal_rep_name ?? "",
+          legal_rep_cpf: client.legal_rep_cpf ?? "",
+          legal_rep_role: client.legal_rep_role ?? "",
           notes: client.notes ?? "",
         }
       : { type: "empresa" },
@@ -145,6 +148,27 @@ export function ClientForm({ client }: { client?: Client }) {
         <Field label="CEP" error={errors.zip_code?.message}>
           <input className="input-base" placeholder="00000-000" {...register("zip_code")} />
         </Field>
+      </FormSection>
+
+      <FormSection
+        title="Responsável legal"
+        description="Quem assina os contratos em nome do cliente — aparece no CONTRATANTE e na assinatura (preencha só quando houver)"
+      >
+        <Field label="Nome do responsável legal" error={errors.legal_rep_name?.message}>
+          <input
+            className="input-base"
+            placeholder="Ex.: João da Silva"
+            {...register("legal_rep_name")}
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="CPF" error={errors.legal_rep_cpf?.message}>
+            <input className="input-base" placeholder="000.000.000-00" {...register("legal_rep_cpf")} />
+          </Field>
+          <Field label="Cargo" error={errors.legal_rep_role?.message}>
+            <input className="input-base" placeholder="Ex.: Diretor" {...register("legal_rep_role")} />
+          </Field>
+        </div>
       </FormSection>
 
       <FormSection title="Observações">

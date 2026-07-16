@@ -343,7 +343,7 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
             {money(data.total_amount)}
             {data.amount_in_words ? ` (${data.amount_in_words})` : ""}
             {data.payment_terms ? `, ${data.payment_terms.toLowerCase()}` : ""}
-            {" e pagamento através de depósito junto ao Banco Inter (077) - Agência: 15.658.494-8 - PIX: CNPJ 03 232 988 0001 02."}
+            {` e pagamento através de depósito junto ao ${COMPANY.bank.name} — Agência: ${COMPANY.bank.agency} — Conta corrente: ${COMPANY.bank.account} — PIX (${COMPANY.bank.pixKind}): ${COMPANY.bank.pix}.`}
           </Text>
           {data.valid_until ? (
             <Text style={{ marginTop: 4 }}>

@@ -77,6 +77,21 @@ export default async function ProposalDetailPage({
     : { data: null };
   const isAdmin = me?.role === "admin";
 
+  // Proposta já enviada ao cliente? (status pós-envio OU e-mail efetivamente
+  // enviado no histórico). Antes disso, editar em cima; depois, criar revisão.
+  const SENT_STATUSES = [
+    "enviada",
+    "em_negociacao",
+    "aprovada",
+    "recusada",
+    "cancelada",
+    "convertida_contrato",
+    "convertida_os",
+  ];
+  const hasBeenSent =
+    SENT_STATUSES.includes(proposal.status) ||
+    (emailLogs ?? []).some((e) => e.status === "enviado");
+
   const client = proposal.clients as { name: string; document: string | null } | null;
   const event = proposal.events as {
     name: string;
@@ -100,6 +115,7 @@ export default async function ProposalDetailPage({
           number={proposal.number}
           canRenumber={isAdmin}
           status={proposal.status}
+          hasBeenSent={hasBeenSent}
           contactEmail={proposal.contact_email}
         />
       </div>

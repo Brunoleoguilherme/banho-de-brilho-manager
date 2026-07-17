@@ -117,6 +117,42 @@ export async function deleteHistoricalProposalAction(
   return { ok: true };
 }
 
+/**
+ * Status em que a proposta já saiu para o cliente (ou avançou além do envio).
+ * A partir daqui, alterar dados NÃO edita em cima: gera-se uma revisão (BBP…R).
+ */
+const SENT_STATUSES = [
+  "enviada",
+  "em_negociacao",
+  "aprovada",
+  "recusada",
+  "cancelada",
+  "convertida_contrato",
+  "convertida_os",
+];
+
+/**
+ * A proposta já foi enviada ao cliente? Considera o status (envio muda para
+ * "enviada" automaticamente) e também um e-mail efetivamente enviado no
+ * histórico — assim, mesmo que o status volte para rascunho, respeita o envio.
+ */
+async function proposalAlreadySent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  id: string,
+  status: string
+): Promise<boolean> {
+  if (SENT_STATUSES.includes(status)) return true;
+  const { data } = await supabase
+    .from("email_logs")
+    .select("id")
+    .eq("related_type", "proposal")
+    .eq("related_id", id)
+    .eq("status", "enviado")
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
 function buildCode(number: number, year: number, revision: number): string {
   const base = `BBP${String(number).padStart(3, "0")}`;
   // 1ª revisão = BBP003R/2026 (padrão histórico da BB); depois R2, R3...
@@ -316,10 +352,11 @@ export async function updateProposalAction(
     .eq("id", id)
     .single();
   if (!existing) return { ok: false, error: "Proposta não encontrada." };
-  if (["aprovada", "convertida_contrato", "convertida_os"].includes(existing.status))
+  if (await proposalAlreadySent(supabase, id, existing.status))
     return {
       ok: false,
-      error: "Proposta aprovada não pode ser editada. Crie uma revisão.",
+      error:
+        "Esta proposta já foi enviada ao cliente. Para alterar os dados, crie uma revisão (BBP…R).",
     };
 
   // Responsabilidades sempre refletem o cadastro atual do evento

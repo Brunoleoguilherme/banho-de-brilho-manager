@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ProposalForm } from "@/components/proposals/ProposalForm";
@@ -40,6 +40,31 @@ export default async function EditProposalPage({
     ]);
 
   if (!proposal) notFound();
+
+  // Proposta já enviada ao cliente não é editada em cima — vira revisão.
+  // Redireciona para o detalhe, onde fica o botão "Criar revisão".
+  const SENT_STATUSES = [
+    "enviada",
+    "em_negociacao",
+    "aprovada",
+    "recusada",
+    "cancelada",
+    "convertida_contrato",
+    "convertida_os",
+  ];
+  let alreadySent = SENT_STATUSES.includes(proposal.status);
+  if (!alreadySent) {
+    const { data: sentLog } = await supabase
+      .from("email_logs")
+      .select("id")
+      .eq("related_type", "proposal")
+      .eq("related_id", id)
+      .eq("status", "enviado")
+      .limit(1)
+      .maybeSingle();
+    alreadySent = !!sentLog;
+  }
+  if (alreadySent) redirect(`/propostas/${id}`);
 
   // Percentuais do Custo do Evento (mesmos do Financeiro)
   const pct = (key: string, fallback: number): number => {

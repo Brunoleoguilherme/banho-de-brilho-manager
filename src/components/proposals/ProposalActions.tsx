@@ -29,6 +29,7 @@ interface ProposalActionsProps {
   number: number;
   canRenumber: boolean;
   status: string;
+  hasBeenSent: boolean;
   contactEmail: string | null;
 }
 
@@ -38,6 +39,7 @@ export function ProposalActions({
   number,
   canRenumber,
   status,
+  hasBeenSent,
   contactEmail,
 }: ProposalActionsProps) {
   const router = useRouter();
@@ -66,8 +68,14 @@ export function ProposalActions({
     router.refresh();
   }
 
+  // Proposta ainda "em aberto" (mostra aceite/recusa/negociação/cancelar)
   const editable = ["rascunho", "em_revisao_interna", "enviada", "em_negociacao"].includes(status);
   const isFinal = ["aprovada", "recusada", "cancelada", "convertida_contrato", "convertida_os"].includes(status);
+  // Editar EM CIMA da proposta só antes de enviar ao cliente.
+  const canEditInPlace =
+    !hasBeenSent && ["rascunho", "em_revisao_interna"].includes(status);
+  // Depois de enviada (ou já finalizada), alterar dados = criar revisão.
+  const canRevise = status !== "cancelada" && (hasBeenSent || isFinal);
 
   async function changeStatus(
     newStatus: Parameters<typeof changeProposalStatusAction>[1],
@@ -104,7 +112,12 @@ export function ProposalActions({
   }
 
   async function handleRevision() {
-    if (!confirm(`Criar uma revisão de ${code}? A nova versão começa como rascunho.`)) return;
+    if (
+      !confirm(
+        `Criar uma revisão de ${code}?\n\nSerá gerada uma nova versão com sufixo R (o número original é mantido), como rascunho, para você editar. Use isto quando a proposta já foi enviada ao cliente e precisa mudar algum dado.`
+      )
+    )
+      return;
     setBusy("revision");
     const result = await createRevisionAction(proposalId);
     if (!result.ok) {
@@ -143,7 +156,7 @@ export function ProposalActions({
       )}
 
       <div className="flex flex-wrap gap-2">
-        {editable && (
+        {canEditInPlace && (
           <Link
             href={`/propostas/${proposalId}/editar`}
             className={`${btn} border border-gray-300 bg-white text-ink hover:bg-gray-50`}
@@ -222,7 +235,7 @@ export function ProposalActions({
           </button>
         )}
 
-        {isFinal && status !== "cancelada" && (
+        {canRevise && (
           <button
             onClick={handleRevision}
             disabled={busy !== null}

@@ -82,7 +82,12 @@ const styles = StyleSheet.create({
   tCellTime: { width: "40%", padding: 4, borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
   tCellNum: { width: "15%", padding: 4, textAlign: "center", borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
   tCellNumLast: { width: "15%", padding: 4, textAlign: "center" },
-  legend: { fontSize: 8, color: PETROL, marginBottom: 12 },
+  legend: {
+    fontSize: 8,
+    color: PETROL,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 12,
+  },
   respTitle: {
     fontFamily: "Helvetica-Bold",
     color: PETROL,

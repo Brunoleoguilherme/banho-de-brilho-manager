@@ -200,24 +200,6 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
     }
   }
 
-  // Horários da realização: um por dia quando forem diferentes
-  const uniqTimes = Array.from(
-    new Set(
-      realDays
-        .map((s) => timeRange(s.start_time, s.end_time))
-        .filter((t) => t !== "—")
-    )
-  );
-  const horarioUnico =
-    uniqTimes.length === 1
-      ? uniqTimes[0]
-      : uniqTimes.length === 0
-        ? timeRange(
-            data.event?.event_start_time ?? null,
-            data.event?.event_end_time ?? null
-          )
-        : null;
-
   return (
     <Document title={`Proposta ${data.code}`} author={COMPANY.name}>
       <Page size="A4" style={styles.page}>
@@ -256,22 +238,6 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
             <Text style={styles.label}>Data da realização: </Text>
             {eventDateLabel}
           </Text>
-          {horarioUnico !== null ? (
-            <Text>
-              <Text style={styles.label}>Horário da realização: </Text>
-              {horarioUnico}
-            </Text>
-          ) : (
-            <>
-              <Text style={styles.label}>Horário da realização:</Text>
-              {realDays.map((s, i) => (
-                <Text key={i}>
-                  {"   "}
-                  {shortDate(s.service_date)}: {timeRange(s.start_time, s.end_time)}
-                </Text>
-              ))}
-            </>
-          )}
           {data.event?.estimated_public ? (
             <Text>
               <Text style={styles.label}>Público estimado: </Text>

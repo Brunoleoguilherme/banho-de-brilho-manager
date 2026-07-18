@@ -215,6 +215,9 @@ export function EventForm({
           location_id:
             (event as { location_id?: string | null }).location_id ?? "",
           name: event.name,
+          requester_name: event.requester_name ?? "",
+          requester_email: event.requester_email ?? "",
+          requester_phone: event.requester_phone ?? "",
           location_name: event.location_name ?? "",
           address: event.address ?? "",
           address_number: event.address_number ?? "",
@@ -345,6 +348,28 @@ export function EventForm({
             placeholder="Ex.: Festival Árvore de Comunicação"
             {...register("name")}
           />
+        </Field>
+        <Field
+          label="Solicitante (A/c)"
+          className="md:col-span-2"
+          error={errors.requester_name?.message}
+        >
+          <input
+            className="input-base"
+            placeholder="Nome de quem pediu a proposta (aparece no A/c da proposta)"
+            {...register("requester_name")}
+          />
+        </Field>
+        <Field label="E-mail do solicitante" error={errors.requester_email?.message}>
+          <input
+            type="email"
+            className="input-base"
+            placeholder="Para onde a proposta será enviada"
+            {...register("requester_email")}
+          />
+        </Field>
+        <Field label="Telefone do solicitante" error={errors.requester_phone?.message}>
+          <input className="input-base" {...register("requester_phone")} />
         </Field>
         <Field
           label="Tipos de serviço (marque todos que se aplicam)"

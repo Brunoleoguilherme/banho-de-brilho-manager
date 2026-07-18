@@ -43,6 +43,10 @@ export const eventSchema = z.object({
   // Local salvo (opcional) — preenche o endereço automaticamente
   location_id: optionalText,
   name: z.string().min(2, "Informe o nome do evento"),
+  // Solicitante do evento (A/c) — quem pediu a proposta neste evento
+  requester_name: optionalText,
+  requester_email: optionalEmail,
+  requester_phone: optionalText,
   location_name: optionalText,
   address: optionalText,
   address_number: optionalText,

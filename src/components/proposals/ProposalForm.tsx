@@ -80,6 +80,10 @@ interface ProposalFormProps {
     client_name: string;
     client_email?: string;
     client_phone?: string;
+    /** Solicitante cadastrado no evento (A/c) — tem prioridade sobre o cliente */
+    requester_name?: string;
+    requester_email?: string;
+    requester_phone?: string;
     start_date: string | null;
     estimated_public?: number | null;
     schedules?: EventScheduleOption[];
@@ -170,13 +174,19 @@ export function ProposalForm({
     setLastEventId(watchedEventId);
 
     const ev = events.find((e) => e.id === watchedEventId);
-    // Auto-preenche e-mail/telefone do contato a partir do cadastro do cliente
-    // (apenas quando o campo ainda estiver vazio, para nao sobrescrever edicoes)
-    if (ev?.client_email && !watch("contact_email")) {
-      setValue("contact_email", ev.client_email);
+    // Auto-preenche o contato responsável (A/c) a partir do SOLICITANTE do evento.
+    // Cai para o cadastro do cliente quando o evento não tem solicitante.
+    // Só preenche campo vazio, para não sobrescrever edições feitas na proposta.
+    if (ev?.requester_name && !watch("contact_name")) {
+      setValue("contact_name", ev.requester_name);
     }
-    if (ev?.client_phone && !watch("contact_phone")) {
-      setValue("contact_phone", ev.client_phone);
+    const emailFromEvent = ev?.requester_email || ev?.client_email;
+    if (emailFromEvent && !watch("contact_email")) {
+      setValue("contact_email", emailFromEvent);
+    }
+    const phoneFromEvent = ev?.requester_phone || ev?.client_phone;
+    if (phoneFromEvent && !watch("contact_phone")) {
+      setValue("contact_phone", phoneFromEvent);
     }
 
     const eventSchedules = ev?.schedules ?? [];

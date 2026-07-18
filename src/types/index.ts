@@ -64,6 +64,10 @@ export interface Event {
   id: string;
   client_id: string;
   name: string;
+  /** Solicitante do evento (A/c) — quem pediu a proposta */
+  requester_name: string | null;
+  requester_email: string | null;
+  requester_phone: string | null;
   location_name: string | null;
   address: string | null;
   address_number: string | null;

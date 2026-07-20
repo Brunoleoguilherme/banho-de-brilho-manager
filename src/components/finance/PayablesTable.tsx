@@ -12,6 +12,8 @@ import {
 } from "@/lib/actions/finance";
 import { PAYABLE_CATEGORIES } from "@/lib/constants";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
+import { SortableHeader } from "@/components/ui/SortableHeader";
+import { useSortable } from "@/lib/useSortable";
 import { formatMoney, formatDate, cn } from "@/lib/utils";
 
 export interface PayableRow {
@@ -89,6 +91,24 @@ export function PayablesTable({ rows }: { rows: PayableRow[] }) {
       return false;
     return true;
   });
+
+  const { sorted, sortKey, sortDir, toggle } = useSortable(
+    filtered,
+    {
+      category: (r) => r.category,
+      competence: (r) =>
+        r.competence_year != null && r.competence_month != null
+          ? r.competence_year * 100 + r.competence_month
+          : null,
+      due_date: (r) => r.due_date,
+      original: (r) => r.amount - r.interest_amount,
+      interest: (r) => r.interest_amount,
+      total: (r) => r.amount,
+      paid_at: (r) => r.paid_at,
+      status: (r) => r.status,
+    },
+    { key: "due_date", dir: "desc" }
+  );
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -294,7 +314,7 @@ export function PayablesTable({ rows }: { rows: PayableRow[] }) {
           <ExportCsvButton
             filename={`contas-a-pagar-${new Date().toISOString().slice(0, 10)}`}
             headers={["Categoria", "Descrição", "Competência", "Vencimento", "Valor original", "Juros e encargos", "Total", "Pago em", "Status"]}
-            rows={filtered.map((r) => [
+            rows={sorted.map((r) => [
               r.category,
               r.description,
               r.competence_month
@@ -429,14 +449,14 @@ export function PayablesTable({ rows }: { rows: PayableRow[] }) {
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-100 bg-gray-50 text-xs uppercase tracking-wide text-ink-muted">
             <tr>
-              <th className="px-4 py-3">Categoria / Descrição</th>
-              <th className="px-4 py-3">Competência</th>
-              <th className="px-4 py-3">Vencimento</th>
-              <th className="px-4 py-3 text-right">Valor original</th>
-              <th className="px-4 py-3 text-right">Juros</th>
-              <th className="px-4 py-3 text-right">Total</th>
-              <th className="px-4 py-3">Pago em</th>
-              <th className="px-4 py-3">Status</th>
+              <SortableHeader label="Categoria / Descrição" columnKey="category" activeKey={sortKey} dir={sortDir} onSort={toggle} />
+              <SortableHeader label="Competência" columnKey="competence" activeKey={sortKey} dir={sortDir} onSort={toggle} />
+              <SortableHeader label="Vencimento" columnKey="due_date" activeKey={sortKey} dir={sortDir} onSort={toggle} />
+              <SortableHeader label="Valor original" columnKey="original" activeKey={sortKey} dir={sortDir} onSort={toggle} align="right" />
+              <SortableHeader label="Juros" columnKey="interest" activeKey={sortKey} dir={sortDir} onSort={toggle} align="right" />
+              <SortableHeader label="Total" columnKey="total" activeKey={sortKey} dir={sortDir} onSort={toggle} align="right" />
+              <SortableHeader label="Pago em" columnKey="paid_at" activeKey={sortKey} dir={sortDir} onSort={toggle} />
+              <SortableHeader label="Status" columnKey="status" activeKey={sortKey} dir={sortDir} onSort={toggle} />
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
@@ -448,7 +468,7 @@ export function PayablesTable({ rows }: { rows: PayableRow[] }) {
                 </td>
               </tr>
             )}
-            {filtered.map((r) => (
+            {sorted.map((r) => (
               <tr key={r.id} className="hover:bg-gray-50/60">
                 <td className="px-4 py-3">
                   <p className="font-medium text-ink">{r.category}</p>

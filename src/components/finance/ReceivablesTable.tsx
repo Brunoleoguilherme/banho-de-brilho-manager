@@ -10,6 +10,8 @@ import {
   deleteReceivableAction,
 } from "@/lib/actions/finance";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
+import { SortableHeader } from "@/components/ui/SortableHeader";
+import { useSortable } from "@/lib/useSortable";
 import { formatMoney, formatDate, cn } from "@/lib/utils";
 
 export interface ReceivableRow {
@@ -126,6 +128,18 @@ export function ReceivablesTable({
     return true;
   });
 
+  const { sorted, sortKey, sortDir, toggle } = useSortable(
+    filtered,
+    {
+      client: (r) => r.client_name,
+      amount: (r) => r.amount,
+      due_date: (r) => r.due_date,
+      received_at: (r) => r.received_at,
+      status: (r) => r.status,
+    },
+    { key: "due_date", dir: "desc" }
+  );
+
   const totalPendente = filtered
     .filter((r) => ["pendente", "atrasado"].includes(r.status))
     .reduce((acc, r) => acc + r.amount, 0);
@@ -189,7 +203,7 @@ export function ReceivablesTable({
           <ExportCsvButton
             filename={`contas-a-receber-${new Date().toISOString().slice(0, 10)}`}
             headers={["Cliente", "Descrição", "Valor", "Vencimento", "Recebido em", "Status", "Tipo"]}
-            rows={filtered.map((r) => [
+            rows={sorted.map((r) => [
               r.client_name,
               r.description,
               r.amount.toFixed(2).replace(".", ","),
@@ -300,11 +314,11 @@ export function ReceivablesTable({
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-100 bg-gray-50 text-xs uppercase tracking-wide text-ink-muted">
             <tr>
-              <th className="px-4 py-3">Cliente / Descrição</th>
-              <th className="px-4 py-3 text-right">Valor</th>
-              <th className="px-4 py-3">Vencimento</th>
-              <th className="px-4 py-3">Recebido em</th>
-              <th className="px-4 py-3">Status</th>
+              <SortableHeader label="Cliente / Descrição" columnKey="client" activeKey={sortKey} dir={sortDir} onSort={toggle} />
+              <SortableHeader label="Valor" columnKey="amount" activeKey={sortKey} dir={sortDir} onSort={toggle} align="right" />
+              <SortableHeader label="Vencimento" columnKey="due_date" activeKey={sortKey} dir={sortDir} onSort={toggle} />
+              <SortableHeader label="Recebido em" columnKey="received_at" activeKey={sortKey} dir={sortDir} onSort={toggle} />
+              <SortableHeader label="Status" columnKey="status" activeKey={sortKey} dir={sortDir} onSort={toggle} />
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
@@ -316,7 +330,7 @@ export function ReceivablesTable({
                 </td>
               </tr>
             )}
-            {filtered.map((r) => (
+            {sorted.map((r) => (
               <tr key={r.id} className="hover:bg-gray-50/60">
                 <td className="px-4 py-3">
                   <p className="font-medium text-ink">{r.client_name}</p>

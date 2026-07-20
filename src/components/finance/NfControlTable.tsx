@@ -8,6 +8,8 @@ import {
   saveIssRatesAction,
 } from "@/lib/actions/finance";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
+import { SortableHeader } from "@/components/ui/SortableHeader";
+import { useSortable } from "@/lib/useSortable";
 import { formatMoney, formatDate, cn } from "@/lib/utils";
 
 export interface NfRow {
@@ -127,6 +129,27 @@ export function NfControlTable({ rows }: { rows: NfRow[] }) {
     );
   });
 
+  const receivedValue = (r: NfRow) =>
+    r.received_amount ?? (r.status === "recebido" ? liquido(r) : 0);
+
+  const { sorted, sortKey, sortDir, toggle } = useSortable(
+    filtered,
+    {
+      emission_date: (r) => r.emission_date,
+      document_type: (r) => r.document_type,
+      invoice_number: (r) => r.invoice_number,
+      proposal_code: (r) => r.proposal_code,
+      received_at: (r) => r.received_at,
+      client: (r) => r.client_name || r.description,
+      amount: (r) => r.amount,
+      iss: (r) => r.iss_amount,
+      inss: (r) => r.inss_amount,
+      liquido: (r) => liquido(r),
+      received: (r) => receivedValue(r),
+    },
+    { key: "emission_date", dir: "desc" }
+  );
+
   const tot = filtered.reduce(
     (acc, r) => ({
       bruto: acc.bruto + r.amount,
@@ -206,7 +229,7 @@ export function NfControlTable({ rows }: { rows: NfRow[] }) {
         <ExportCsvButton
           filename={`controle-nfs-${new Date().toISOString().slice(0, 10)}`}
           headers={["Data emissão","Tipo","Nº NF","Nº Proposta","Data recebimento","Cliente","Valor bruto","ISS","INSS","Valor líquido","Valor recebido"]}
-          rows={filtered.map((r) => [
+          rows={sorted.map((r) => [
             r.emission_date ? formatDate(r.emission_date) : "",
             r.document_type === "recibo" ? "Recibo" : "Nota Fiscal",
             r.invoice_number ?? "",
@@ -227,22 +250,22 @@ export function NfControlTable({ rows }: { rows: NfRow[] }) {
         <table className="w-full whitespace-nowrap text-left text-xs">
           <thead className="border-b border-gray-100 bg-gray-50 text-[10px] uppercase tracking-wide text-ink-muted">
             <tr>
-              <th className="px-3 py-2.5">Emissão</th>
-              <th className="px-3 py-2.5">Tipo</th>
-              <th className="px-3 py-2.5">Nº NF</th>
-              <th className="px-3 py-2.5">Proposta</th>
-              <th className="px-3 py-2.5">Recebimento</th>
-              <th className="px-3 py-2.5">Cliente</th>
-              <th className="px-3 py-2.5 text-right">Valor bruto</th>
-              <th className="px-3 py-2.5 text-right">ISS</th>
-              <th className="px-3 py-2.5 text-right">INSS</th>
-              <th className="px-3 py-2.5 text-right">Valor líquido</th>
-              <th className="px-3 py-2.5 text-right">Recebido</th>
+              <SortableHeader label="Emissão" columnKey="emission_date" activeKey={sortKey} dir={sortDir} onSort={toggle} className="px-3 py-2.5" />
+              <SortableHeader label="Tipo" columnKey="document_type" activeKey={sortKey} dir={sortDir} onSort={toggle} className="px-3 py-2.5" />
+              <SortableHeader label="Nº NF" columnKey="invoice_number" activeKey={sortKey} dir={sortDir} onSort={toggle} className="px-3 py-2.5" />
+              <SortableHeader label="Proposta" columnKey="proposal_code" activeKey={sortKey} dir={sortDir} onSort={toggle} className="px-3 py-2.5" />
+              <SortableHeader label="Recebimento" columnKey="received_at" activeKey={sortKey} dir={sortDir} onSort={toggle} className="px-3 py-2.5" />
+              <SortableHeader label="Cliente" columnKey="client" activeKey={sortKey} dir={sortDir} onSort={toggle} className="px-3 py-2.5" />
+              <SortableHeader label="Valor bruto" columnKey="amount" activeKey={sortKey} dir={sortDir} onSort={toggle} align="right" className="px-3 py-2.5" />
+              <SortableHeader label="ISS" columnKey="iss" activeKey={sortKey} dir={sortDir} onSort={toggle} align="right" className="px-3 py-2.5" />
+              <SortableHeader label="INSS" columnKey="inss" activeKey={sortKey} dir={sortDir} onSort={toggle} align="right" className="px-3 py-2.5" />
+              <SortableHeader label="Valor líquido" columnKey="liquido" activeKey={sortKey} dir={sortDir} onSort={toggle} align="right" className="px-3 py-2.5" />
+              <SortableHeader label="Recebido" columnKey="received" activeKey={sortKey} dir={sortDir} onSort={toggle} align="right" className="px-3 py-2.5" />
               <th className="px-3 py-2.5" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {filtered.map((r) => (
+            {sorted.map((r) => (
               <tr key={r.id} className="hover:bg-gray-50/60">
                 <td className="px-3 py-2 text-ink-muted">
                   {r.emission_date ? formatDate(r.emission_date) : "—"}

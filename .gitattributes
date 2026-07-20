@@ -1,0 +1,19 @@
+# Normaliza quebras de linha: LF no repositorio e no checkout (evita ruido CRLF no Windows)
+* text=auto eol=lf
+
+# Arquivos binarios (nao normalizar)
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.pdf  binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+*.eot  binary
+*.otf  binary
+*.mp4  binary
+*.mov  binary
+*.zip  binary

@@ -12,7 +12,7 @@ export default async function ReceivablesPage() {
     supabase
       .from("receivables")
       .select("*, clients(name)")
-      .order("due_date", { ascending: false, nullsFirst: false }),
+      .order("due_date", { ascending: true, nullsFirst: false }),
     supabase.from("clients").select("id, name").order("name"),
   ]);
 

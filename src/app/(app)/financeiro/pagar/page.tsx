@@ -11,7 +11,7 @@ export default async function PayablesPage() {
   const { data: payables } = await supabase
     .from("payables")
     .select("*")
-    .order("due_date", { ascending: true, nullsFirst: false });
+    .order("due_date", { ascending: false, nullsFirst: false });
 
   const today = new Date().toISOString().slice(0, 10);
   const rows: PayableRow[] = (payables ?? []).map((p) => ({

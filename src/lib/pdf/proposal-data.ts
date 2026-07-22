@@ -48,13 +48,25 @@ export interface ProposalPdfData {
     event_end_time: string | null;
     estimated_public: number | null;
   } | null;
+  pricing_mode: string;
   schedule: {
     phase: string;
-    service_date: string;
+    service_date: string | null;
     start_time: string | null;
     end_time: string | null;
+    time_label: string | null;
     cleaning_agents: number;
     coordinators: number;
+    notes: string | null;
+  }[];
+  rental_items: {
+    description: string;
+    quantity: number;
+    unit_value: number;
+  }[];
+  value_items: {
+    label: string;
+    amount: number;
   }[];
 }
 
@@ -78,7 +90,12 @@ export async function getProposalPdfData(
 ): Promise<ProposalPdfData | null> {
   const supabase = await createClient();
 
-  const [{ data: proposal }, { data: schedule }] = await Promise.all([
+  const [
+    { data: proposal },
+    { data: schedule },
+    { data: rentalItems },
+    { data: valueItems },
+  ] = await Promise.all([
     supabase
       .from("proposals")
       .select(
@@ -90,7 +107,17 @@ export async function getProposalPdfData(
       .from("proposal_schedule_items")
       .select("*")
       .eq("proposal_id", id)
-      .order("service_date"),
+      .order("service_date", { nullsFirst: true }),
+    supabase
+      .from("proposal_rental_items")
+      .select("*")
+      .eq("proposal_id", id)
+      .order("sort_order"),
+    supabase
+      .from("proposal_value_items")
+      .select("*")
+      .eq("proposal_id", id)
+      .order("sort_order"),
   ]);
 
   if (!proposal) return null;
@@ -112,13 +139,25 @@ export async function getProposalPdfData(
     responsibilities_client: proposal.responsibilities_client,
     client: proposal.clients as ProposalPdfData["client"],
     event: proposal.events as ProposalPdfData["event"],
+    pricing_mode: proposal.pricing_mode ?? "automatico",
     schedule: (schedule ?? []).map((s) => ({
       phase: s.phase,
       service_date: s.service_date,
       start_time: s.start_time,
       end_time: s.end_time,
+      time_label: s.time_label ?? null,
       cleaning_agents: s.cleaning_agents ?? 0,
       coordinators: s.coordinators ?? 0,
+      notes: s.notes ?? null,
+    })),
+    rental_items: (rentalItems ?? []).map((r) => ({
+      description: r.description,
+      quantity: Number(r.quantity) || 0,
+      unit_value: Number(r.unit_value) || 0,
+    })),
+    value_items: (valueItems ?? []).map((v) => ({
+      label: v.label,
+      amount: Number(v.amount) || 0,
     })),
   };
 }

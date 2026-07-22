@@ -16,6 +16,8 @@ export default async function EditProposalPage({
     { data: proposal },
     { data: schedule },
     { data: items },
+    { data: rentalItems },
+    { data: valueItems },
     { data: events },
     { data: eventSchedules },
     { data: settings },
@@ -26,8 +28,18 @@ export default async function EditProposalPage({
         .from("proposal_schedule_items")
         .select("*")
         .eq("proposal_id", id)
-        .order("service_date"),
+        .order("service_date", { nullsFirst: true }),
       supabase.from("proposal_items").select("*").eq("proposal_id", id),
+      supabase
+        .from("proposal_rental_items")
+        .select("*")
+        .eq("proposal_id", id)
+        .order("sort_order"),
+      supabase
+        .from("proposal_value_items")
+        .select("*")
+        .eq("proposal_id", id)
+        .order("sort_order"),
       supabase
         .from("events")
         .select("id, name, start_date, estimated_public, requester_name, requester_email, requester_phone, clients(name, email, phone)")
@@ -95,6 +107,7 @@ export default async function EditProposalPage({
 
   const defaultValues: Partial<ProposalInput> = {
     event_id: proposal.event_id,
+    pricing_mode: proposal.pricing_mode === "manual" ? "manual" : "automatico",
     contact_name: proposal.contact_name ?? "",
     contact_email: proposal.contact_email ?? "",
     contact_phone: proposal.contact_phone ?? "",
@@ -116,6 +129,7 @@ export default async function EditProposalPage({
       service_date: s.service_date ?? "",
       start_time: s.start_time?.slice(0, 5) ?? "",
       end_time: s.end_time?.slice(0, 5) ?? "",
+      time_label: s.time_label ?? "",
       cleaning_agents: s.cleaning_agents ?? 0,
       coordinators: s.coordinators ?? 0,
       notes: s.notes ?? "",
@@ -129,6 +143,15 @@ export default async function EditProposalPage({
       is_internal_cost: !!i.is_internal_cost,
       show_on_proposal: !!i.show_on_proposal,
       notes: i.notes ?? "",
+    })),
+    rental_items: (rentalItems ?? []).map((r) => ({
+      description: r.description ?? "",
+      quantity: Number(r.quantity) || 0,
+      unit_value: Number(r.unit_value) || 0,
+    })),
+    value_items: (valueItems ?? []).map((v) => ({
+      label: v.label ?? "",
+      amount: Number(v.amount) || 0,
     })),
   };
 

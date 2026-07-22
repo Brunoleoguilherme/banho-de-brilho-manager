@@ -67,6 +67,8 @@ export async function deleteProposalAction(
   await supabase.from("email_logs").delete().eq("proposal_id", id);
   await supabase.from("proposal_schedule_items").delete().eq("proposal_id", id);
   await supabase.from("proposal_items").delete().eq("proposal_id", id);
+  await supabase.from("proposal_rental_items").delete().eq("proposal_id", id);
+  await supabase.from("proposal_value_items").delete().eq("proposal_id", id);
   const { error } = await supabase.from("proposals").delete().eq("id", id);
   if (error) return { ok: false, error: "Erro ao excluir. " + error.message };
 
@@ -167,6 +169,19 @@ function hojeBrasilia(): string {
   }).format(new Date());
 }
 
+/** Total do modo manual: valores discriminados + itens de locação (qtd × valor) */
+function manualTotal(data: ProposalInput): number {
+  const values = (data.value_items ?? []).reduce(
+    (acc, v) => acc + (Number(v.amount) || 0),
+    0
+  );
+  const rentals = (data.rental_items ?? []).reduce(
+    (acc, r) => acc + (Number(r.quantity) || 0) * (Number(r.unit_value) || 0),
+    0
+  );
+  return Math.round((values + rentals) * 100) / 100;
+}
+
 function buildProposalRecord(data: ProposalInput) {
   const pricing = calculatePricing(
     data.items.map((i) => ({
@@ -179,14 +194,23 @@ function buildProposalRecord(data: ProposalInput) {
     data
   );
 
-  const total =
-    data.emission_type === "recibo" ? pricing.totalReceipt : pricing.totalNf;
-  const taxes =
-    data.emission_type === "recibo" ? pricing.taxesReceipt : pricing.taxesNf;
+  const isManual = data.pricing_mode === "manual";
+  // No modo manual o valor é digitado direto (soma), sem passar pela margem.
+  const total = isManual
+    ? manualTotal(data)
+    : data.emission_type === "recibo"
+      ? pricing.totalReceipt
+      : pricing.totalNf;
+  const taxes = isManual
+    ? 0
+    : data.emission_type === "recibo"
+      ? pricing.taxesReceipt
+      : pricing.taxesNf;
 
   return {
     record: emptyToNull({
       event_id: data.event_id,
+      pricing_mode: data.pricing_mode ?? "automatico",
       contact_name: data.contact_name ?? "",
       contact_email: data.contact_email ?? "",
       contact_phone: data.contact_phone ?? "",
@@ -203,13 +227,13 @@ function buildProposalRecord(data: ProposalInput) {
       discount_percent: data.discount_percent,
       tax_percent_nf: data.tax_percent_nf,
       tax_percent_receipt: data.tax_percent_receipt,
-      subtotal: pricing.subtotal,
-      total_cost: pricing.totalCost,
-      bv: pricing.bvAmount,
-      discount: pricing.discountAmount,
+      subtotal: isManual ? total : pricing.subtotal,
+      total_cost: isManual ? 0 : pricing.totalCost,
+      bv: isManual ? 0 : pricing.bvAmount,
+      discount: isManual ? 0 : pricing.discountAmount,
       taxes,
-      total_nf: pricing.totalNf,
-      total_receipt: pricing.totalReceipt,
+      total_nf: isManual ? total : pricing.totalNf,
+      total_receipt: isManual ? total : pricing.totalReceipt,
       total_amount: total,
       amount_in_words: valorPorExtenso(total),
     }),
@@ -227,18 +251,54 @@ async function saveChildren(
     .delete()
     .eq("proposal_id", proposalId);
   await supabase.from("proposal_items").delete().eq("proposal_id", proposalId);
+  await supabase
+    .from("proposal_rental_items")
+    .delete()
+    .eq("proposal_id", proposalId);
+  await supabase
+    .from("proposal_value_items")
+    .delete()
+    .eq("proposal_id", proposalId);
 
   if (data.schedule.length > 0) {
     const { error } = await supabase.from("proposal_schedule_items").insert(
       data.schedule.map((s) => ({
         proposal_id: proposalId,
         phase: s.phase,
-        service_date: s.service_date,
+        service_date: s.service_date || null,
         start_time: s.start_time || null,
         end_time: s.end_time || null,
+        time_label: s.time_label || null,
         cleaning_agents: s.cleaning_agents,
         coordinators: s.coordinators,
         notes: s.notes || null,
+      }))
+    );
+    if (error) return error.message;
+  }
+
+  const rentals = data.rental_items ?? [];
+  if (rentals.length > 0) {
+    const { error } = await supabase.from("proposal_rental_items").insert(
+      rentals.map((r, idx) => ({
+        proposal_id: proposalId,
+        description: r.description,
+        quantity: r.quantity,
+        unit_value: r.unit_value,
+        sort_order: idx,
+      }))
+    );
+    if (error) return error.message;
+  }
+
+  const valueItems = data.value_items ?? [];
+  if (valueItems.length > 0) {
+    const { error } = await supabase.from("proposal_value_items").insert(
+      valueItems.map((v, idx) => ({
+        proposal_id: proposalId,
+        label: v.label,
+        amount: v.amount,
+        sort_order: idx,
       }))
     );
     if (error) return error.message;
@@ -548,15 +608,19 @@ export async function createRevisionAction(id: string): Promise<ActionResult> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: proposal }, { data: schedule }, { data: items }] =
-    await Promise.all([
-      supabase.from("proposals").select("*").eq("id", id).single(),
-      supabase
-        .from("proposal_schedule_items")
-        .select("*")
-        .eq("proposal_id", id),
-      supabase.from("proposal_items").select("*").eq("proposal_id", id),
-    ]);
+  const [
+    { data: proposal },
+    { data: schedule },
+    { data: items },
+    { data: rentals },
+    { data: valueItems },
+  ] = await Promise.all([
+    supabase.from("proposals").select("*").eq("id", id).single(),
+    supabase.from("proposal_schedule_items").select("*").eq("proposal_id", id),
+    supabase.from("proposal_items").select("*").eq("proposal_id", id),
+    supabase.from("proposal_rental_items").select("*").eq("proposal_id", id),
+    supabase.from("proposal_value_items").select("*").eq("proposal_id", id),
+  ]);
 
   if (!proposal) return { ok: false, error: "Proposta não encontrada." };
 
@@ -606,6 +670,16 @@ export async function createRevisionAction(id: string): Promise<ActionResult> {
   if (items && items.length > 0) {
     await supabase.from("proposal_items").insert(
       items.map(({ id: _i, ...s }) => ({ ...s, proposal_id: newProposal.id }))
+    );
+  }
+  if (rentals && rentals.length > 0) {
+    await supabase.from("proposal_rental_items").insert(
+      rentals.map(({ id: _i, ...s }) => ({ ...s, proposal_id: newProposal.id }))
+    );
+  }
+  if (valueItems && valueItems.length > 0) {
+    await supabase.from("proposal_value_items").insert(
+      valueItems.map(({ id: _i, ...s }) => ({ ...s, proposal_id: newProposal.id }))
     );
   }
 

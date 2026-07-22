@@ -26,6 +26,8 @@ export default async function ProposalDetailPage({
     { data: proposal },
     { data: schedule },
     { data: items },
+    { data: rentalItems },
+    { data: valueItems },
     { data: emailLogs },
     { data: logs },
     { data: contract },
@@ -40,8 +42,18 @@ export default async function ProposalDetailPage({
       .from("proposal_schedule_items")
       .select("*")
       .eq("proposal_id", id)
-      .order("service_date"),
+      .order("service_date", { nullsFirst: true }),
     supabase.from("proposal_items").select("*").eq("proposal_id", id),
+    supabase
+      .from("proposal_rental_items")
+      .select("*")
+      .eq("proposal_id", id)
+      .order("sort_order"),
+    supabase
+      .from("proposal_value_items")
+      .select("*")
+      .eq("proposal_id", id)
+      .order("sort_order"),
     supabase
       .from("email_logs")
       .select("*")
@@ -188,9 +200,11 @@ export default async function ProposalDetailPage({
                         {formatDate(s.service_date)}
                       </td>
                       <td className="py-2 text-ink-muted">
-                        {s.start_time
-                          ? `${formatTime(s.start_time)} às ${formatTime(s.end_time)}`
-                          : "—"}
+                        {s.time_label
+                          ? s.time_label
+                          : s.start_time
+                            ? `${formatTime(s.start_time)} às ${formatTime(s.end_time)}`
+                            : "—"}
                       </td>
                       <td className="py-2 text-center text-ink">
                         {s.cleaning_agents}
@@ -247,6 +261,58 @@ export default async function ProposalDetailPage({
               </table></div>
             )}
           </div>
+
+          {rentalItems && rentalItems.length > 0 && (
+            <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-card">
+              <h2 className="mb-4 text-base font-semibold text-ink">
+                Locação / Equipamentos
+              </h2>
+              <div className="overflow-x-auto"><table className="w-full text-left text-sm">
+                <thead className="text-xs uppercase tracking-wide text-ink-muted">
+                  <tr>
+                    <th className="pb-2">Descrição</th>
+                    <th className="pb-2 text-center">Qtd.</th>
+                    <th className="pb-2 text-right">Unit.</th>
+                    <th className="pb-2 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {rentalItems.map((r) => (
+                    <tr key={r.id}>
+                      <td className="py-2 font-medium text-ink">{r.description}</td>
+                      <td className="py-2 text-center text-ink-muted">
+                        {Number(r.quantity)}
+                      </td>
+                      <td className="py-2 text-right text-ink-muted">
+                        {formatMoney(Number(r.unit_value))}
+                      </td>
+                      <td className="py-2 text-right font-medium text-ink">
+                        {formatMoney(Number(r.quantity) * Number(r.unit_value))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table></div>
+            </div>
+          )}
+
+          {valueItems && valueItems.length > 0 && (
+            <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-card">
+              <h2 className="mb-4 text-base font-semibold text-ink">
+                Valores discriminados
+              </h2>
+              <ul className="divide-y divide-gray-50 text-sm">
+                {valueItems.map((v) => (
+                  <li key={v.id} className="flex justify-between py-2">
+                    <span className="text-ink">{v.label}</span>
+                    <span className="font-medium text-ink">
+                      {formatMoney(Number(v.amount))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">

@@ -140,6 +140,7 @@ export function ProposalForm({
     resolver: zodResolver(proposalSchema),
     defaultValues: defaultValues ?? {
       event_id: defaultEventId ?? "",
+      pricing_mode: "automatico",
       issue_date: new Date().toISOString().slice(0, 10),
       emission_type: "nota_fiscal",
       payment_terms: "Contra entrega de Nota Fiscal",
@@ -154,17 +155,22 @@ export function ProposalForm({
           service_date: "",
           start_time: "",
           end_time: "",
+          time_label: "",
           cleaning_agents: 1,
           coordinators: 0,
           notes: "",
         },
       ],
       items: [],
+      rental_items: [],
+      value_items: [],
     },
   });
 
   const scheduleArray = useFieldArray({ control, name: "schedule" });
   const itemsArray = useFieldArray({ control, name: "items" });
+  const rentalArray = useFieldArray({ control, name: "rental_items" });
+  const valueArray = useFieldArray({ control, name: "value_items" });
 
   // Ao trocar o evento, puxa as datas e horários cadastrados nele
   const watchedEventId = watch("event_id");
@@ -258,6 +264,22 @@ export function ProposalForm({
     0
   );
 
+  const pricingMode = (values.pricing_mode ?? "automatico") as
+    | "automatico"
+    | "manual";
+  const isML = pricingMode === "manual";
+
+  // Total do modo manual: valores discriminados + itens de locação (qtd × valor)
+  const rentalTotal = (values.rental_items ?? []).reduce(
+    (acc, r) => acc + (Number(r.quantity) || 0) * (Number(r.unit_value) || 0),
+    0
+  );
+  const valuesTotal = (values.value_items ?? []).reduce(
+    (acc, v) => acc + (Number(v.amount) || 0),
+    0
+  );
+  const manualTotalValue = Math.round((rentalTotal + valuesTotal) * 100) / 100;
+
   const isManaged = (category?: string) =>
     MANAGED_LABOR.includes(category ?? "");
 
@@ -274,6 +296,9 @@ export function ProposalForm({
   );
   const ratesSig = JSON.stringify(rates);
   useEffect(() => {
+    // No modo manual os valores são digitados direto — não geramos itens de
+    // custo a partir do cronograma.
+    if ((values.pricing_mode ?? "automatico") === "manual") return;
     const sched = values.schedule ?? [];
     const agentByH = new Map<number, number>();
     const coordByH = new Map<number, number>();
@@ -399,6 +424,44 @@ export function ProposalForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <FormError message={serverError} />
 
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-card">
+        <p className="mb-2 text-sm font-semibold text-ink">Modo da proposta</p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <label
+            className={`flex flex-1 cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm transition ${
+              !isML
+                ? "border-brand-petrol bg-brand-petrol/5"
+                : "border-gray-200 hover:bg-gray-50"
+            }`}
+          >
+            <input type="radio" value="automatico" className="mt-0.5" {...register("pricing_mode")} />
+            <span>
+              <span className="font-semibold text-ink">Automático</span>
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                Cronograma com horários; o sistema calcula diárias, margem e
+                impostos. (Padrão)
+              </span>
+            </span>
+          </label>
+          <label
+            className={`flex flex-1 cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm transition ${
+              isML
+                ? "border-brand-petrol bg-brand-petrol/5"
+                : "border-gray-200 hover:bg-gray-50"
+            }`}
+          >
+            <input type="radio" value="manual" className="mt-0.5" {...register("pricing_mode")} />
+            <span>
+              <span className="font-semibold text-ink">Manual / flexível</span>
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                Carga horária (sem hora fixa), locação de equipamentos e valores
+                digitados direto.
+              </span>
+            </span>
+          </label>
+        </div>
+      </div>
+
       <FormSection
         title="Evento e contato"
         description="Para quem esta proposta será enviada"
@@ -442,10 +505,17 @@ export function ProposalForm({
           </div>
         </div>
 
-        {scheduleArray.fields.length === 0 && (
+        {scheduleArray.fields.length === 0 && !isML && (
           <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-warning">
             Selecione um evento que já tenha datas e horários cadastrados — o
             cronograma é preenchido automaticamente a partir do evento.
+          </p>
+        )}
+        {isML && (
+          <p className="mb-3 rounded-lg bg-teal-50 px-3 py-2 text-xs text-brand-petrol">
+            Modo manual: a data é opcional e o horário é texto livre (ex.:
+            &quot;Carga horária de 08 horas&quot;). Propostas só de locação podem
+            ficar sem nenhuma linha aqui.
           </p>
         )}
 
@@ -458,11 +528,18 @@ export function ProposalForm({
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-ink-muted">
                 <th className="pb-2 pr-2">Fase</th>
-                <th className="pb-2 pr-2">Data</th>
-                <th className="pb-2 pr-2">Início</th>
-                <th className="pb-2 pr-2">Fim</th>
+                <th className="pb-2 pr-2">Data{isML ? " (opcional)" : ""}</th>
+                {isML ? (
+                  <th className="pb-2 pr-2">Horário / carga horária</th>
+                ) : (
+                  <>
+                    <th className="pb-2 pr-2">Início</th>
+                    <th className="pb-2 pr-2">Fim</th>
+                  </>
+                )}
                 <th className="pb-2 pr-2 text-center">AL</th>
                 <th className="pb-2 pr-2 text-center">CO</th>
+                {isML && <th className="pb-2 pr-2">Descrição</th>}
                 <th className="pb-2" />
               </tr>
             </thead>
@@ -481,18 +558,39 @@ export function ProposalForm({
                   <td className="py-2 pr-2">
                     <input type="date" className="input-base" {...register(`schedule.${index}.service_date`)} />
                   </td>
-                  <td className="py-2 pr-2">
-                    <input type="time" className="input-base" {...register(`schedule.${index}.start_time`)} />
-                  </td>
-                  <td className="py-2 pr-2">
-                    <input type="time" className="input-base" {...register(`schedule.${index}.end_time`)} />
-                  </td>
+                  {isML ? (
+                    <td className="py-2 pr-2">
+                      <input
+                        className="input-base min-w-48"
+                        placeholder="Ex.: Carga horária de 08 horas"
+                        {...register(`schedule.${index}.time_label`)}
+                      />
+                    </td>
+                  ) : (
+                    <>
+                      <td className="py-2 pr-2">
+                        <input type="time" className="input-base" {...register(`schedule.${index}.start_time`)} />
+                      </td>
+                      <td className="py-2 pr-2">
+                        <input type="time" className="input-base" {...register(`schedule.${index}.end_time`)} />
+                      </td>
+                    </>
+                  )}
                   <td className="py-2 pr-2">
                     <input type="number" min={0} className="input-base w-16 text-center" {...register(`schedule.${index}.cleaning_agents`)} />
                   </td>
                   <td className="py-2 pr-2">
                     <input type="number" min={0} className="input-base w-16 text-center" {...register(`schedule.${index}.coordinators`)} />
                   </td>
+                  {isML && (
+                    <td className="py-2 pr-2">
+                      <input
+                        className="input-base min-w-48"
+                        placeholder="Descrição livre (opcional)"
+                        {...register(`schedule.${index}.notes`)}
+                      />
+                    </td>
+                  )}
                   <td className="py-2 text-right">
                     <button
                       type="button"
@@ -512,10 +610,11 @@ export function ProposalForm({
           type="button"
           onClick={() =>
             scheduleArray.append({
-              phase: "continuo",
+              phase: isML ? "realizacao" : "continuo",
               service_date: "",
               start_time: "",
               end_time: "",
+              time_label: "",
               cleaning_agents: 0,
               coordinators: 0,
               notes: "",
@@ -524,7 +623,7 @@ export function ProposalForm({
           className="mt-3 flex items-center gap-1.5 rounded-lg bg-brand-petrol/5 px-3 py-2 text-xs font-semibold text-brand-petrol hover:bg-brand-petrol/10"
         >
           <Plus className="h-3.5 w-3.5" />
-          Adicionar turno contínuo
+          {isML ? "Adicionar linha" : "Adicionar turno contínuo"}
         </button>
         <p className="mt-2 text-xs text-ink-muted">
           Turno contínuo: use quando os MESMOS funcionários trabalham direto por
@@ -540,6 +639,7 @@ export function ProposalForm({
         )}
       </div>
 
+      {!isML && (
       <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-card">
         <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-3">
           <div>
@@ -983,6 +1083,208 @@ export function ProposalForm({
           </div>
         </div>
       </div>
+      )}
+
+      {isML && (
+        <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-card">
+          <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
+            <div>
+              <h2 className="text-base font-semibold text-ink">
+                Locação / Equipamentos
+              </h2>
+              <p className="mt-0.5 text-sm text-ink-muted">
+                Lixeiras, máquinas e equipamentos — descrição, quantidade e valor.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                rentalArray.append({ description: "", quantity: 1, unit_value: 0 })
+              }
+              className="flex items-center gap-1.5 rounded-lg bg-brand-petrol/5 px-3 py-2 text-xs font-semibold text-brand-petrol hover:bg-brand-petrol/10"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Adicionar item de locação
+            </button>
+          </div>
+
+          {rentalArray.fields.length === 0 ? (
+            <p className="text-sm text-ink-muted">
+              Nenhum item de locação. Use o botão acima se a proposta incluir
+              locação de equipamentos.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wide text-ink-muted">
+                    <th className="pb-2 pr-2">Descrição</th>
+                    <th className="pb-2 pr-2 text-center">Qtd.</th>
+                    <th className="pb-2 pr-2">Valor unit. (R$)</th>
+                    <th className="pb-2 pr-2 text-right">Total</th>
+                    <th className="pb-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {rentalArray.fields.map((field, index) => {
+                    const r = values.rental_items?.[index];
+                    const lineTotal =
+                      (Number(r?.quantity) || 0) * (Number(r?.unit_value) || 0);
+                    return (
+                      <tr key={field.id} className="border-t border-gray-50">
+                        <td className="py-2 pr-2">
+                          <input
+                            className="input-base min-w-56"
+                            placeholder="Ex.: Locação de 100 lixeiras de 2 cores"
+                            {...register(`rental_items.${index}.description`)}
+                          />
+                        </td>
+                        <td className="py-2 pr-2">
+                          <input
+                            type="number"
+                            min={0}
+                            step="any"
+                            className="input-base w-20 text-center"
+                            {...register(`rental_items.${index}.quantity`)}
+                          />
+                        </td>
+                        <td className="py-2 pr-2">
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            className="input-base w-28"
+                            {...register(`rental_items.${index}.unit_value`)}
+                          />
+                        </td>
+                        <td className="py-2 pr-2 text-right font-medium text-ink">
+                          {formatMoney(lineTotal)}
+                        </td>
+                        <td className="py-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => rentalArray.remove(index)}
+                            className="rounded p-1.5 text-gray-400 hover:text-danger"
+                            title="Remover item"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="mt-6 flex items-center justify-between border-b border-gray-100 pb-3">
+            <div>
+              <h2 className="text-base font-semibold text-ink">
+                Valores discriminados
+              </h2>
+              <p className="mt-0.5 text-sm text-ink-muted">
+                Cada parte do valor (serviços, materiais…) — somam no total.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => valueArray.append({ label: "", amount: 0 })}
+              className="flex items-center gap-1.5 rounded-lg bg-brand-petrol/5 px-3 py-2 text-xs font-semibold text-brand-petrol hover:bg-brand-petrol/10"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Adicionar valor
+            </button>
+          </div>
+
+          {valueArray.fields.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-muted">
+              Nenhum valor discriminado. Ex.: &quot;Agentes de limpeza (8 × 8h)&quot;
+              — R$ 3.440,00; &quot;Materiais&quot; — R$ 700,00.
+            </p>
+          ) : (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wide text-ink-muted">
+                    <th className="pb-2 pr-2">Descrição do valor</th>
+                    <th className="pb-2 pr-2">Valor (R$)</th>
+                    <th className="pb-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {valueArray.fields.map((field, index) => (
+                    <tr key={field.id} className="border-t border-gray-50">
+                      <td className="py-2 pr-2">
+                        <input
+                          className="input-base min-w-64"
+                          placeholder="Ex.: Agente de limpeza pequeno porte / 08h"
+                          {...register(`value_items.${index}.label`)}
+                        />
+                      </td>
+                      <td className="py-2 pr-2">
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          className="input-base w-36"
+                          {...register(`value_items.${index}.amount`)}
+                        />
+                      </td>
+                      <td className="py-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() => valueArray.remove(index)}
+                          className="rounded p-1.5 text-gray-400 hover:text-danger"
+                          title="Remover valor"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {errors.value_items?.message && (
+            <p className="mt-2 text-xs text-danger">{errors.value_items.message}</p>
+          )}
+
+          <div className="mt-5 rounded-xl bg-brand-dark p-5 text-white">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-xs text-gray-300">Valor total da proposta</p>
+                <p className="text-2xl font-bold text-brand-teal">
+                  {formatMoney(manualTotalValue)}
+                </p>
+                <p className="mt-1 max-w-xl text-xs italic text-gray-300">
+                  {valorPorExtenso(manualTotalValue)}
+                </p>
+              </div>
+              <div className="text-right text-xs text-gray-300">
+                {valuesTotal > 0 && (
+                  <p>
+                    Valores discriminados:{" "}
+                    <span className="font-semibold text-white">
+                      {formatMoney(valuesTotal)}
+                    </span>
+                  </p>
+                )}
+                {rentalTotal > 0 && (
+                  <p>
+                    Locação:{" "}
+                    <span className="font-semibold text-white">
+                      {formatMoney(rentalTotal)}
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <FormSection
         title="Condições de pagamento"

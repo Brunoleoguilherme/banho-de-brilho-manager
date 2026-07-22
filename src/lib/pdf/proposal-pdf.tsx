@@ -82,6 +82,33 @@ const styles = StyleSheet.create({
   tCellTime: { width: "40%", padding: 4, borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
   tCellNum: { width: "15%", padding: 4, textAlign: "center", borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
   tCellNumLast: { width: "15%", padding: 4, textAlign: "center" },
+  tCellDescRow: {
+    width: "100%",
+    paddingHorizontal: 6,
+    paddingBottom: 4,
+    fontFamily: "Helvetica-Oblique",
+    color: MUTED,
+  },
+  // Locação / Equipamentos
+  rCellDesc: { width: "55%", padding: 4, borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
+  rCellQty: { width: "12%", padding: 4, textAlign: "center", borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
+  rCellUnit: { width: "16%", padding: 4, textAlign: "right", borderRightWidth: 0.5, borderRightColor: "#9CA3AF" },
+  rCellTotal: { width: "17%", padding: 4, textAlign: "right" },
+  // Valores discriminados
+  valLine: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 2,
+  },
+  valTotalLine: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    borderTopWidth: 0.5,
+    borderTopColor: PETROL,
+    marginTop: 4,
+    paddingTop: 4,
+    fontFamily: "Helvetica-Bold",
+  },
   legend: {
     fontSize: 8,
     color: PETROL,
@@ -151,13 +178,12 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
 
   // Dias reais de realização (do cronograma) — respeita dias avulsos.
   // Se não houver linhas de "realização", usa todos os dias do cronograma.
-  const realizacaoRows = data.schedule.filter(
-    (s) => s.phase === "realizacao" && s.service_date
+  type DatedRow = (typeof data.schedule)[number] & { service_date: string };
+  const datedRows = data.schedule.filter(
+    (s): s is DatedRow => !!s.service_date
   );
-  const baseRows =
-    realizacaoRows.length > 0
-      ? realizacaoRows
-      : data.schedule.filter((s) => s.service_date);
+  const realizacaoRows = datedRows.filter((s) => s.phase === "realizacao");
+  const baseRows = realizacaoRows.length > 0 ? realizacaoRows : datedRows;
   const realDays = [...baseRows].sort((a, b) =>
     a.service_date > b.service_date ? 1 : -1
   );
@@ -249,10 +275,9 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
         <View style={styles.section}>
           <Text>Prezados(as) Senhores(as),</Text>
           <Text style={{ marginTop: 6 }}>
-            Conforme solicitação, segue proposta da {COMPANY.name} para
-            serviços de limpeza durante o evento acima descrito, a ser
-            realizado de acordo com a seguinte demanda de funcionários e
-            cronograma:
+            {phases.length > 0
+              ? `Conforme solicitação, segue proposta da ${COMPANY.name} para serviços de limpeza durante o evento acima descrito, a ser realizado de acordo com a seguinte demanda de funcionários e cronograma:`
+              : `Conforme solicitação, segue proposta da ${COMPANY.name} para o evento acima descrito, conforme discriminado abaixo:`}
           </Text>
         </View>
 
@@ -268,26 +293,63 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
             {data.schedule
               .filter((s) => s.phase === phase)
               .map((s, i) => (
-                <View key={i} style={styles.tRow}>
-                  <Text style={styles.tCellDate}>{shortDate(s.service_date)}</Text>
-                  <Text style={styles.tCellTime}>
-                    {timeRange(s.start_time, s.end_time)}
-                  </Text>
-                  <Text style={styles.tCellNum}>
-                    {String(s.cleaning_agents).padStart(2, "0")}
-                  </Text>
-                  <Text style={styles.tCellNumLast}>
-                    {String(s.coordinators).padStart(2, "0")}
-                  </Text>
+                <View key={i}>
+                  <View style={styles.tRow}>
+                    <Text style={styles.tCellDate}>
+                      {shortDate(s.service_date)}
+                    </Text>
+                    <Text style={styles.tCellTime}>
+                      {s.time_label
+                        ? s.time_label
+                        : timeRange(s.start_time, s.end_time)}
+                    </Text>
+                    <Text style={styles.tCellNum}>
+                      {String(s.cleaning_agents).padStart(2, "0")}
+                    </Text>
+                    <Text style={styles.tCellNumLast}>
+                      {String(s.coordinators).padStart(2, "0")}
+                    </Text>
+                  </View>
+                  {s.notes ? (
+                    <View style={styles.tRow}>
+                      <Text style={styles.tCellDescRow}>{s.notes}</Text>
+                    </View>
+                  ) : null}
                 </View>
               ))}
           </View>
         ))}
 
-        <Text style={styles.legend}>
-          ** AL = Agente de Limpeza&nbsp;&nbsp;&nbsp;** CO = Coordenador de
-          Limpeza
-        </Text>
+        {phases.length > 0 ? (
+          <Text style={styles.legend}>
+            ** AL = Agente de Limpeza&nbsp;&nbsp;&nbsp;** CO = Coordenador de
+            Limpeza
+          </Text>
+        ) : null}
+
+        {data.rental_items.length > 0 ? (
+          <View style={styles.table} wrap={false}>
+            <Text style={styles.phaseHeader}>Locação / Equipamentos</Text>
+            <View style={[styles.tRow, styles.tHead]}>
+              <Text style={styles.rCellDesc}>Descrição</Text>
+              <Text style={styles.rCellQty}>Qtd.</Text>
+              <Text style={styles.rCellUnit}>Valor unit.</Text>
+              <Text style={styles.rCellTotal}>Total</Text>
+            </View>
+            {data.rental_items.map((r, i) => (
+              <View key={i} style={styles.tRow}>
+                <Text style={styles.rCellDesc}>{r.description}</Text>
+                <Text style={styles.rCellQty}>
+                  {String(r.quantity).replace(".", ",")}
+                </Text>
+                <Text style={styles.rCellUnit}>{money(r.unit_value)}</Text>
+                <Text style={styles.rCellTotal}>
+                  {money(r.quantity * r.unit_value)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {data.responsibilities_company ? (
           <View style={styles.section}>
@@ -308,6 +370,20 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
         {/* Valor/forma de pagamento + encerramento ficam sempre juntos:
             se não couber na página, o bloco inteiro desce para a próxima. */}
         <View wrap={false}>
+        {data.value_items.length > 0 ? (
+          <View style={{ marginBottom: 8 }}>
+            {data.value_items.map((v, i) => (
+              <View key={i} style={styles.valLine}>
+                <Text>{v.label}</Text>
+                <Text>{money(v.amount)}</Text>
+              </View>
+            ))}
+            <View style={styles.valTotalLine}>
+              <Text>Valor total</Text>
+              <Text>{money(data.total_amount)}</Text>
+            </View>
+          </View>
+        ) : null}
         <View style={styles.valueBox} wrap={false}>
           <Text>
             <Text style={styles.label}>Valor e forma de pagamento: </Text>

@@ -97,18 +97,11 @@ const styles = StyleSheet.create({
   // Valores discriminados
   valLine: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "flex-start",
     paddingVertical: 2,
   },
-  valTotalLine: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    borderTopWidth: 0.5,
-    borderTopColor: PETROL,
-    marginTop: 4,
-    paddingTop: 4,
-    fontFamily: "Helvetica-Bold",
-  },
+  valLabel: { flex: 1, paddingRight: 12 },
+  valAmount: { width: 90, textAlign: "right" },
   legend: {
     fontSize: 8,
     color: PETROL,
@@ -374,14 +367,10 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
           <View style={{ marginBottom: 8 }}>
             {data.value_items.map((v, i) => (
               <View key={i} style={styles.valLine}>
-                <Text>{v.label}</Text>
-                <Text>{money(v.amount)}</Text>
+                <Text style={styles.valLabel}>{v.label}</Text>
+                <Text style={styles.valAmount}>{money(v.amount)}</Text>
               </View>
             ))}
-            <View style={styles.valTotalLine}>
-              <Text>Valor total</Text>
-              <Text>{money(data.total_amount)}</Text>
-            </View>
           </View>
         ) : null}
         <View style={styles.valueBox} wrap={false}>

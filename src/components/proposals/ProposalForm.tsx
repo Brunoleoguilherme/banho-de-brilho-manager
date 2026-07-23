@@ -1184,7 +1184,8 @@ export function ProposalForm({
                 Valores discriminados
               </h2>
               <p className="mt-0.5 text-sm text-ink-muted">
-                Cada parte do valor (serviços, materiais…) — somam no total.
+                Digite o valor; a descrição é opcional. Use descrições só quando
+                quiser detalhar (ex.: serviços + materiais).
               </p>
             </div>
             <button
@@ -1207,7 +1208,7 @@ export function ProposalForm({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wide text-ink-muted">
-                    <th className="pb-2 pr-2">Descrição do valor</th>
+                    <th className="pb-2 pr-2">Descrição (opcional)</th>
                     <th className="pb-2 pr-2">Valor (R$)</th>
                     <th className="pb-2" />
                   </tr>
@@ -1218,7 +1219,7 @@ export function ProposalForm({
                       <td className="py-2 pr-2">
                         <input
                           className="input-base min-w-64"
-                          placeholder="Ex.: Agente de limpeza pequeno porte / 08h"
+                          placeholder="Opcional — ex.: Agentes 8×8h, Materiais…"
                           {...register(`value_items.${index}.label`)}
                         />
                       </td>

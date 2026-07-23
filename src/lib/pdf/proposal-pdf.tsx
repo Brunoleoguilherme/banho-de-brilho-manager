@@ -169,6 +169,12 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
     data.schedule.some((s) => s.phase === phase)
   );
 
+  // Valores discriminados que têm descrição — linhas sem rótulo só compõem o
+  // total (que aparece no box de pagamento), sem virar linha no PDF.
+  const labeledValues = data.value_items.filter(
+    (v) => (v.label ?? "").trim() !== ""
+  );
+
   // Dias reais de realização (do cronograma) — respeita dias avulsos.
   // Se não houver linhas de "realização", usa todos os dias do cronograma.
   type DatedRow = (typeof data.schedule)[number] & { service_date: string };
@@ -363,12 +369,17 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
         {/* Valor/forma de pagamento + encerramento ficam sempre juntos:
             se não couber na página, o bloco inteiro desce para a próxima. */}
         <View wrap={false}>
-        {data.value_items.length > 0 ? (
+        {labeledValues.length > 0 ? (
           <View style={{ marginBottom: 8 }}>
-            {data.value_items.map((v, i) => (
+            {labeledValues.map((v, i) => (
               <View key={i} style={styles.valLine}>
                 <Text style={styles.valLabel}>{v.label}</Text>
-                <Text style={styles.valAmount}>{money(v.amount)}</Text>
+                {/* Mostra o valor por linha só quando há mais de uma descrição
+                    (quebra real). Com uma linha só, o valor apareceria repetido
+                    no box de pagamento abaixo, então exibimos só a descrição. */}
+                {labeledValues.length > 1 ? (
+                  <Text style={styles.valAmount}>{money(v.amount)}</Text>
+                ) : null}
               </View>
             ))}
           </View>

@@ -31,9 +31,11 @@ export const rentalItemSchema = z.object({
   unit_value: money,
 });
 
-// Modo manual — valores discriminados (rótulo + valor) que somam no total
+// Modo manual — valores que somam no total. O rótulo é opcional: com uma
+// linha só, basta o valor (o total aparece no box de pagamento). Use rótulos
+// quando quiser detalhar (ex.: serviços + materiais).
 export const valueItemSchema = z.object({
-  label: z.string().min(1, "Descrição do valor"),
+  label: optionalText,
   amount: money,
 });
 

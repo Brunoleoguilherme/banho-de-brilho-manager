@@ -296,7 +296,7 @@ async function saveChildren(
     const { error } = await supabase.from("proposal_value_items").insert(
       valueItems.map((v, idx) => ({
         proposal_id: proposalId,
-        label: v.label,
+        label: v.label || "",
         amount: v.amount,
         sort_order: idx,
       }))

@@ -52,6 +52,7 @@ export interface ProposalPdfData {
   schedule: {
     phase: string;
     service_date: string | null;
+    date_tbd: boolean;
     start_time: string | null;
     end_time: string | null;
     time_label: string | null;
@@ -143,6 +144,7 @@ export async function getProposalPdfData(
     schedule: (schedule ?? []).map((s) => ({
       phase: s.phase,
       service_date: s.service_date,
+      date_tbd: s.date_tbd ?? false,
       start_time: s.start_time,
       end_time: s.end_time,
       time_label: s.time_label ?? null,

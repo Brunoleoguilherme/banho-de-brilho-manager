@@ -197,7 +197,7 @@ export default async function ProposalDetailPage({
                         {PHASE_LABELS[s.phase] ?? s.phase}
                       </td>
                       <td className="py-2 text-ink-muted">
-                        {formatDate(s.service_date)}
+                        {s.date_tbd ? "A definir" : formatDate(s.service_date)}
                       </td>
                       <td className="py-2 text-ink-muted">
                         {s.time_label

@@ -153,6 +153,7 @@ export function ProposalForm({
         {
           phase: "realizacao",
           service_date: "",
+          date_tbd: false,
           start_time: "",
           end_time: "",
           time_label: "",
@@ -210,6 +211,7 @@ export function ProposalForm({
       .map((s) => ({
         phase: phaseFor(s.service_type),
         service_date: s.service_date,
+        date_tbd: false,
         start_time: s.start_time?.slice(0, 5) ?? "",
         end_time: s.end_time?.slice(0, 5) ?? "",
         cleaning_agents: 1,
@@ -556,7 +558,44 @@ export function ProposalForm({
                     </select>
                   </td>
                   <td className="py-2 pr-2">
-                    <input type="date" className="input-base" {...register(`schedule.${index}.service_date`)} />
+                    {values.schedule?.[index]?.date_tbd ? (
+                      <div className="flex items-center gap-2">
+                        <span className="whitespace-nowrap rounded bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+                          A definir
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setValue(`schedule.${index}.date_tbd`, false, {
+                              shouldDirty: true,
+                            })
+                          }
+                          className="whitespace-nowrap text-xs text-brand-petrol hover:underline"
+                          title="Informar uma data"
+                        >
+                          Informar data
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <input type="date" className="input-base" {...register(`schedule.${index}.service_date`)} />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setValue(`schedule.${index}.service_date`, "", {
+                              shouldDirty: true,
+                            });
+                            setValue(`schedule.${index}.date_tbd`, true, {
+                              shouldDirty: true,
+                            });
+                          }}
+                          className="whitespace-nowrap text-xs text-ink-muted hover:text-brand-petrol hover:underline"
+                          title="Marcar data como a definir"
+                        >
+                          A definir
+                        </button>
+                      </div>
+                    )}
                   </td>
                   {isML ? (
                     <td className="py-2 pr-2">
@@ -612,6 +651,7 @@ export function ProposalForm({
             scheduleArray.append({
               phase: isML ? "realizacao" : "continuo",
               service_date: "",
+              date_tbd: false,
               start_time: "",
               end_time: "",
               time_label: "",

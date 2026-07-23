@@ -15,6 +15,9 @@ export const scheduleItemSchema = z.object({
   // Opcional: no modo manual a proposta pode não ter data definida ainda.
   // A obrigatoriedade no modo automático é validada no proposalSchema.
   service_date: optionalText,
+  // Quando true, a data está "a definir": exibe "A definir" na proposta e
+  // dispensa service_date mesmo no modo automático.
+  date_tbd: z.boolean().default(false),
   start_time: optionalText,
   end_time: optionalText,
   // Modo manual: texto livre de horário/carga horária (ex.: "Carga horária de 08 horas")
@@ -91,7 +94,7 @@ export const proposalSchema = z
         });
       }
       data.schedule.forEach((s, i) => {
-        if (!s.service_date) {
+        if (!s.service_date && !s.date_tbd) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["schedule", i, "service_date"],

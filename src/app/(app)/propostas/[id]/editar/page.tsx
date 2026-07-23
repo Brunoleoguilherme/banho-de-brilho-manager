@@ -127,6 +127,7 @@ export default async function EditProposalPage({
     schedule: (schedule ?? []).map((s) => ({
       phase: s.phase,
       service_date: s.service_date ?? "",
+      date_tbd: s.date_tbd ?? false,
       start_time: s.start_time?.slice(0, 5) ?? "",
       end_time: s.end_time?.slice(0, 5) ?? "",
       time_label: s.time_label ?? "",

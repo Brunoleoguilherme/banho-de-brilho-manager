@@ -249,7 +249,7 @@ function ContractDocument({ data, contractCode }: ContractPdfProps) {
                 .filter((s) => s.phase === phase)
                 .map((s, i) => (
                   <View key={i} style={styles.tRow}>
-                    <Text style={styles.tCellDate}>{shortDate(s.service_date)}</Text>
+                    <Text style={styles.tCellDate}>{s.date_tbd ? "A definir" : shortDate(s.service_date)}</Text>
                     <Text style={styles.tCellTime}>
                       {timeRange(s.start_time, s.end_time)}
                     </Text>

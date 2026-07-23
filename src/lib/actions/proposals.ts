@@ -265,7 +265,8 @@ async function saveChildren(
       data.schedule.map((s) => ({
         proposal_id: proposalId,
         phase: s.phase,
-        service_date: s.service_date || null,
+        service_date: s.date_tbd ? null : s.service_date || null,
+        date_tbd: s.date_tbd ?? false,
         start_time: s.start_time || null,
         end_time: s.end_time || null,
         time_label: s.time_label || null,

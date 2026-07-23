@@ -295,7 +295,7 @@ function ProposalDocument({ data }: { data: ProposalPdfData }) {
                 <View key={i}>
                   <View style={styles.tRow}>
                     <Text style={styles.tCellDate}>
-                      {shortDate(s.service_date)}
+                      {s.date_tbd ? "A definir" : shortDate(s.service_date)}
                     </Text>
                     <Text style={styles.tCellTime}>
                       {s.time_label
